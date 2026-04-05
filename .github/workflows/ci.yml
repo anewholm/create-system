@@ -104,7 +104,7 @@ jobs:
 
       - name: Run acorn-create-system against test plugin
         working-directory: wintercms
-        run: php $GITHUB_WORKSPACE/create-system/acorn-create-system acorn/test
+        run: php $GITHUB_WORKSPACE/create-system/acorn-create-system test
 
       - name: Check generated PHP files are syntactically valid
         working-directory: wintercms

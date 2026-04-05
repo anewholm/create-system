@@ -130,9 +130,25 @@ class Table {
             $schemaName = (count($nameParts) == 2 ? $nameParts[0] : 'public');
             $qualifiedName = "$schemaName.$tableName";
         }
-        if (!isset(self::$tables[$qualifiedName])) 
+        if (!isset(self::$tables[$qualifiedName]))
             throw new Exception("Table [$qualifiedName] not in static list");
         return self::$tables[$qualifiedName];
+    }
+
+    public static function find(string $name, string $schema = NULL): Table|NULL
+    {
+        // Like get() but returns NULL instead of throwing when the table is absent.
+        // Used for optional ecosystem tables (location, calendar, …) whose views
+        // should simply be skipped when those plugins are not installed.
+        if ($schema) {
+            $qualifiedName = "$schema.$name";
+        } else {
+            $nameParts  = explode('.', $name);
+            $tableName  = (count($nameParts) == 2 ? $nameParts[1] : $nameParts[0]);
+            $schemaName = (count($nameParts) == 2 ? $nameParts[0] : 'public');
+            $qualifiedName = "$schemaName.$tableName";
+        }
+        return self::$tables[$qualifiedName] ?? NULL;
     }
 
     public static function dummy(DB &$db, string $name, string $schema = NULL, array $columns = array()): Table
@@ -571,7 +587,7 @@ class Table {
         // --------------------------------- Update acorn_location_linked_view
         // Check all columns that foreign key to the locations table
         static $firstLocationLinkedViewEntry = TRUE;
-        $locationsTable = Table::get('acorn_location_locations');
+        $locationsTable = Table::find('acorn_location_locations');
         $tablesView     = array();
         $modelName      = $this->fullyQualifiedModelName();
         $idField        = ($this->hasIdColumn() ? 'id' : 'NULL::uuid');
@@ -603,7 +619,7 @@ SQL
         // --------------------------------- Update acorn_location_linked_address_view
         // Check all columns that foreign key to the locations table
         static $firstLocationLinkedAddressViewEntry = TRUE;
-        $addressesTable = Table::get('acorn_location_addresses');
+        $addressesTable = Table::find('acorn_location_addresses');
         $tablesView     = array();
         $modelName      = $this->fullyQualifiedModelName();
         $idField        = ($this->hasIdColumn() ? 'id' : 'NULL::uuid');
@@ -636,7 +652,7 @@ SQL
         // Check all columns that foreign key to the calendar events table
         static $firstCalendarLinkedEventsViewEntry = TRUE;
         if ($this->pluginName() != 'Calendar') {
-            $calendarEventsTable = Table::get('acorn_calendar_events');
+            $calendarEventsTable = Table::find('acorn_calendar_events');
             $tablesView          = array();
             $modelName           = $this->fullyQualifiedModelName();
             $idField             = ($this->hasIdColumn() ? 'id' : 'NULL::uuid');
@@ -669,7 +685,7 @@ SQL
         // --------------------------------- Update acorn_calendar_linked_calendars_view
         // Check all columns that foreign key to the calendar events table
         static $firstCalendarLinkedCalendarsViewEntry = TRUE;
-        $calendarsTable = Table::get('acorn_calendar_calendars');
+        $calendarsTable = Table::find('acorn_calendar_calendars');
         $tablesView     = array();
         $modelName      = $this->fullyQualifiedModelName();
         $idField        = ($this->hasIdColumn() ? 'id' : 'NULL::uuid');
