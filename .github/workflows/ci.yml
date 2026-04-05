@@ -8,6 +8,8 @@ on:
 
 jobs:
 
+  # ── Quick syntax check (no WinterCMS needed) ─────────────────────────────────
+
   lint:
     name: PHP Syntax ${{ matrix.php }}
     runs-on: ubuntu-22.04
@@ -32,3 +34,82 @@ jobs:
 
       - name: Dry run — show usage (no DB required)
         run: php acorn-create-system 2>&1 | head -1
+
+  # ── Integration test: run against a real schema ───────────────────────────────
+
+  integrate:
+    name: Integration ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-22.04, ubuntu-24.04 ]
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: wintercms_test
+          POSTGRES_USER: createsystem
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: create-system
+
+      - name: Setup PHP 8.1
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: pdo_pgsql, mbstring, xml, gd, curl, zip
+          coverage: none
+
+      - name: Install WinterCMS 1.2.0
+        run: composer create-project wintercms/winter:1.2.0 wintercms --prefer-dist --no-interaction -q
+
+      - name: Check out Acorn module
+        uses: actions/checkout@v4
+        with:
+          repository: anewholm/acorn
+          path: wintercms/modules/acorn
+
+      - name: Configure WinterCMS .env
+        working-directory: wintercms
+        run: |
+          printf 'APP_NAME="Winter CMS"\nAPP_KEY=\nAPP_DEBUG=true\nAPP_URL=http://localhost:8000\nDB_CONNECTION=pgsql\nDB_HOST=127.0.0.1\nDB_PORT=5432\nDB_DATABASE=wintercms_test\nDB_USERNAME=createsystem\nDB_PASSWORD=testpassword\nCACHE_DRIVER=file\nSESSION_DRIVER=file\nQUEUE_CONNECTION=sync\n' | tee .env
+          php artisan key:generate --quiet
+
+      - name: Enable Acorn module
+        working-directory: wintercms
+        run: sed -i "s/'Cms'/'Cms', 'Acorn'/" config/cms.php
+
+      - name: Run WinterCMS migrations
+        working-directory: wintercms
+        run: php artisan winter:up
+
+      - name: Load test fixture schema
+        run: PGPASSWORD=testpassword psql -h 127.0.0.1 -U createsystem -d wintercms_test -f create-system/tests/fixture_schema.sql
+
+      - name: Install create-system Composer dependencies
+        working-directory: create-system
+        run: composer install --no-interaction --no-progress
+
+      - name: Run acorn-create-system against test plugin
+        working-directory: wintercms
+        run: php $GITHUB_WORKSPACE/create-system/acorn-create-system acorn/test
+
+      - name: Check generated PHP files are syntactically valid
+        working-directory: wintercms
+        run: find plugins/acorn/test -name "*.php" -exec php -l {} \;
+
+      - name: Show generated file list
+        working-directory: wintercms
+        run: find plugins/acorn/test -type f | sort
