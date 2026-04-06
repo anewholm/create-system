@@ -1,14 +1,15 @@
 # create-system — DDL-first WinterCMS plugin scaffolding
 
-`create-system` introspects a live PostgreSQL schema and generates a complete WinterCMS plugin skeleton: models, migrations, backend controllers, list/form field definitions, and language files. The schema is the single source of truth — annotate your DDL with YAML comments to control every aspect of the generated output.
+`create-system` introspects a live PostgreSQL schema and generates a complete, functional, WinterCMS plugin: models, migrations, backend controllers, list/form field definitions, language files, etc. The schema is the single source of truth — with optional YAML comments — to control every aspect of the generated output.
 
 ## What it does
 
 1. Connects to a PostgreSQL database and reads the schema (tables, columns, foreign keys, constraints, triggers).
 2. Classifies each table by structural pattern: `ContentTable`, `PivotTable`, `SemiPivotTable`, `CentralTable`, `ReportTable`.
-3. Infers ORM relation types from FK structure (BelongsTo, HasMany, BelongsToMany, etc.).
+3. [Infers ORM relation](PATTERNS.md) types from FK structure (BelongsTo, HasMany, BelongsToMany, etc.).
 4. Generates a full WinterCMS plugin directory under `plugins/<author>/<name>/`.
 5. Optionally commits and pushes the generated plugin via git.
+6. Optionally generates functional [Pentaho Mondrian](https://mondrian.pentaho.com/documentation/olap.php) OLAP reporting cubes from DB views.
 
 ## Quick start
 
@@ -30,14 +31,12 @@ git clone https://github.com/anewholm/create-system /var/www/scripts/acorn-creat
 composer install -d /var/www/scripts/acorn-create-system-dir
 ```
 
-Or clone the [scripts](https://github.com/anewholm/scripts) repo which includes this tool alongside the broader WinterCMS setup scripts.
-
 ## Prerequisites
 
-- PHP 8.1+
-- PostgreSQL 12+ (must be running and accessible)
-- Composer
-- WinterCMS installation (the generated output targets WinterCMS 1.2+)
+- [PHP](https://www.php.net/downloads.php) v8.1+
+- [PostgreSQL](https://www.postgresql.org/download/) v16+ (must be running and accessible)
+- [Composer](https://getcomposer.org/download/) v2
+- [WinterCMS](https://wintercms.com/install) installation (the generated output targets WinterCMS v1.2+)
 
 ## YAML comment vocabulary
 
