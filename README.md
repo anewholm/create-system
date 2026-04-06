@@ -1,5 +1,6 @@
 # create-system — DDL-first WinterCMS plugin scaffolding
 
+![Human made content](human-made-content.png "Human made content")
 \(Build CI/CD and CodeQL in progress...\)
 
 `create-system` introspects a live PostgreSQL schema and generates a complete, functional, WinterCMS plugin: models, migrations, backend controllers, list/form field definitions, language files, etc. The schema is the single source of truth — with optional YAML comments — to control every aspect of the generated output.
