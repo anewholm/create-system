@@ -3,7 +3,9 @@
 ![Human made content](human-made-content.png "Human made content")
 \(Build CI/CD and CodeQL in progress...\)
 
-`create-system` introspects a live PostgreSQL schema and generates a complete, functional, WinterCMS plugin: models, migrations, backend controllers, list/form field definitions, language files, etc. The schema is the single source of truth — with optional YAML comments — to control every aspect of the generated output.
+Information management systems have administration interfaces. University admin, legal system admin, and so on. The normal database administration UI, like PGAdmin or PocketBase, is almost all the UI you need for the project after you have built the DB, but not quite friendly enough. So why should I then have to spend a month repeating all the MVC from a ERD / DDL that already describes everything that is needed... with a few YAML comments to point the way?
+
+`create-system` introspects a live PostgreSQL schema and generates a complete, functional and ready, WinterCMS plugin: models, migrations, backend controllers, list/form field definitions, language files, etc. It makes use of the in-built `artisan create:model|controller` commands and then adds a _lot_ of flavor. The schema is the single source of truth — with optional YAML comments — to control every aspect of the generated output.
 
 ## What it does
 
