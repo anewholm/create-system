@@ -73,20 +73,43 @@ if (!$framework) throw new \Exception("No framework found at [$cwd]");
 $framework->show();
 
 // ------------------------------------------- Auto views
-file_put_contents('date_tables_view.sql', "DROP VIEW IF EXISTS acorn_calendar_upcreated_ats;\n");
-file_put_contents('date_tables_view.sql', "CREATE OR REPLACE VIEW acorn_calendar_upcreated_ats as\n", FILE_APPEND);
-file_put_contents('name_tables_view.sql', "DROP VIEW IF EXISTS acorn_names;\n");
-file_put_contents('name_tables_view.sql', "CREATE OR REPLACE VIEW acorn_names as\n", FILE_APPEND);
-file_put_contents('acorn_created_bys_view.sql', "DROP VIEW IF EXISTS acorn_created_bys;\n");
-file_put_contents('acorn_created_bys_view.sql', "CREATE OR REPLACE VIEW acorn_created_bys as\n", FILE_APPEND);
-file_put_contents('acorn_calendar_linked_events_view.sql', "DROP VIEW IF EXISTS acorn_calendar_linked_events;\n");
-file_put_contents('acorn_calendar_linked_events_view.sql', "CREATE OR REPLACE VIEW acorn_calendar_linked_events as\n", FILE_APPEND);
-file_put_contents('acorn_calendar_linked_calendars_view.sql', "DROP VIEW IF EXISTS acorn_calendar_linked_calendars;\n");
-file_put_contents('acorn_calendar_linked_calendars_view.sql', "CREATE OR REPLACE VIEW acorn_calendar_linked_calendars as\n", FILE_APPEND);
-file_put_contents('acorn_location_linked_view.sql', "DROP VIEW IF EXISTS acorn_location_location_links;\n");
-file_put_contents('acorn_location_linked_view.sql', "CREATE OR REPLACE VIEW acorn_location_location_links as\n", FILE_APPEND);
-file_put_contents('acorn_location_linked_address_view.sql', "DROP VIEW IF EXISTS acorn_location_address_links;\n");
-file_put_contents('acorn_location_linked_address_view.sql', "CREATE OR REPLACE VIEW acorn_location_address_links as\n", FILE_APPEND);
+// Each file is initialised with a null-row SELECT so the CREATE VIEW is always valid
+// even when no tables contribute entries. Real table entries are appended as UNION ALL.
+file_put_contents('date_tables_view.sql',
+    "DROP VIEW IF EXISTS acorn_calendar_upcreated_ats;\n" .
+    "CREATE OR REPLACE VIEW acorn_calendar_upcreated_ats as\n" .
+    "select NULL as model_type, NULL as model_id, NULL as \"table\", NULL as \"name\", NULL as \"update\", NULL as datetime where 1=0"
+);
+file_put_contents('name_tables_view.sql',
+    "DROP VIEW IF EXISTS acorn_names;\n" .
+    "CREATE OR REPLACE VIEW acorn_names as\n" .
+    "select NULL as model_type, NULL as model_id, NULL as \"table\", NULL as \"field\", NULL as content where 1=0"
+);
+file_put_contents('acorn_created_bys_view.sql',
+    "DROP VIEW IF EXISTS acorn_created_bys;\n" .
+    "CREATE OR REPLACE VIEW acorn_created_bys as\n" .
+    "select NULL as model_type, NULL as model_id, NULL as \"table\", NULL as \"update\", NULL as \"by\" where 1=0"
+);
+file_put_contents('acorn_calendar_linked_events_view.sql',
+    "DROP VIEW IF EXISTS acorn_calendar_linked_events;\n" .
+    "CREATE OR REPLACE VIEW acorn_calendar_linked_events as\n" .
+    "select NULL as event_id, NULL as schema, NULL as \"table\", NULL as \"column\", NULL as model_type, NULL as model_id where 1=0"
+);
+file_put_contents('acorn_calendar_linked_calendars_view.sql',
+    "DROP VIEW IF EXISTS acorn_calendar_linked_calendars;\n" .
+    "CREATE OR REPLACE VIEW acorn_calendar_linked_calendars as\n" .
+    "select NULL as calendar_id, NULL as schema, NULL as \"table\", NULL as \"column\", NULL as model_type, NULL as model_id where 1=0"
+);
+file_put_contents('acorn_location_linked_view.sql',
+    "DROP VIEW IF EXISTS acorn_location_location_links;\n" .
+    "CREATE OR REPLACE VIEW acorn_location_location_links as\n" .
+    "select NULL as event_id, NULL as schema, NULL as \"table\", NULL as \"column\", NULL as model_type, NULL as model_id where 1=0"
+);
+file_put_contents('acorn_location_linked_address_view.sql',
+    "DROP VIEW IF EXISTS acorn_location_address_links;\n" .
+    "CREATE OR REPLACE VIEW acorn_location_address_links as\n" .
+    "select NULL as event_id, NULL as schema, NULL as \"table\", NULL as \"column\", NULL as model_type, NULL as model_id where 1=0"
+);
 
 // ------------------------------------------- Read DB
 $nc      = new AcornNamingConvention();

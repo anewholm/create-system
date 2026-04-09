@@ -338,60 +338,6 @@ class Table {
                     }
                 }
 
-                // -------------------- compile names view
-                static $firstNameTablesViewEntry = TRUE;
-                $tablesView = array();
-                $modelClass     = $this->fullyQualifiedModelName();
-                $nameColumn     = ($this->hasColumn('name') ? 'name::character varying(1024)' : 'NULL');
-                $standardFields = "'$modelClass' as model_type, id as model_id, '$this->name' as \"table\"";
-
-                if ($this->hasColumn('name'))        array_push($tablesView, "select $standardFields, 'name' as \"field\", name::text as content from $this->name");
-                if ($this->hasColumn('description')) array_push($tablesView, "select $standardFields, 'description' as \"field\", description::text as content from $this->name");
-                
-                if ($tablesView) {
-                    $tablesViewString = implode("\nunion all\n", $tablesView);
-                    if (!$firstNameTablesViewEntry) $tablesViewString = "\nunion all\n$tablesViewString";
-                    file_put_contents('name_tables_view.sql', $tablesViewString, FILE_APPEND);
-                    $firstNameTablesViewEntry = FALSE;
-                }
-
-                // -------------------- compile created_by users
-                static $firstUserTablesViewEntry = TRUE;
-                $tablesView = array();
-
-                if ($this->hasColumn('created_by_user_id')) array_push($tablesView, "select $standardFields, 0 as \"update\", created_by_user_id as \"by\" from $this->name");
-                if ($this->hasColumn('updated_by_user_id')) array_push($tablesView, "select $standardFields, 1 as \"update\", updated_by_user_id as \"by\" from $this->name");
-                
-                if ($tablesView) {
-                    $tablesViewString = implode("\nunion all\n", $tablesView);
-                    if (!$firstUserTablesViewEntry) $tablesViewString = "\nunion all\n$tablesViewString";
-                    file_put_contents('acorn_created_bys_view.sql', $tablesViewString, FILE_APPEND);
-                    $firstUserTablesViewEntry = FALSE;
-                }                
-
-                // -------------------- compile created|updated_at[_event_id] fields for calendar
-                // to use in its special activity event instance view
-                // TODO: Should this date_tables_view.sql be in the Model instead? We need the external_url from the Controller facade
-                static $firstDateTablesViewEntry = TRUE;
-                $tablesView = array();
-                $nameColumn     = ($this->hasColumn('name') ? 'name::character varying(1024)' : 'NULL');
-                $standardFields = "'$modelClass' as model_type, id as model_id, '$this->name' as \"table\", $nameColumn as \"name\"";
-
-                // TODO: Old system: remove *_event_id (revert_timestamps.sql)
-                // table name, create|update, event_id
-                if ($this->hasColumn('created_at_event_id')) array_push($tablesView, "select $standardFields, 0 as \"update\", created_at_event_id as event_id from $this->name");
-                if ($this->hasColumn('updated_at_event_id')) array_push($tablesView, "select $standardFields, 1 as \"update\", updated_at_event_id as event_id from $this->name");
-                // TODO: New system, normal timestamps
-                if ($this->hasColumn('created_at')) array_push($tablesView, "select $standardFields, 0 as \"update\", created_at as datetime from $this->name");
-                if ($this->hasColumn('updated_at')) array_push($tablesView, "select $standardFields, 1 as \"update\", updated_at as datetime from $this->name");
-                
-                if ($tablesView) {
-                    $tablesViewString = implode("\nunion all\n", $tablesView);
-                    if (!$firstDateTablesViewEntry) $tablesViewString = "\nunion all\n$tablesViewString";
-                    file_put_contents('date_tables_view.sql', $tablesViewString, FILE_APPEND);
-                    $firstDateTablesViewEntry = FALSE;
-                }
-
                 // -------------------- created_by[_user_id]
                 $columnCheck = 'created_by_user_id';
                 if (!$this->hasColumn($columnCheck) && !$this->hasCustom1to1FK()) {
@@ -584,9 +530,54 @@ class Table {
             }
         }
 
+        // --------------------------------- Compile name/date/created_by view entries
+        // Runs regardless of addMissingColumns so CI fixtures (with add-missing-columns: false)
+        // still contribute to the union views.
+        // View files are initialised with a null-row header in acorn-create-system, so all
+        // entries here are appended as "union all <select>" — no first-entry tracking needed.
+        if (   $this->shouldProcess()
+            && $this->isOurs()
+            && !$this->isKnownAcornPlugin()
+            && !$this->isModule()
+            && $this->isContentTable()
+        ) {
+            $modelClass     = $this->fullyQualifiedModelName();
+            $standardFields = "'$modelClass' as model_type, id as model_id, '$this->name' as \"table\"";
+
+            // compile names view
+            $tablesView = array();
+            if ($this->hasColumn('name'))        array_push($tablesView, "select $standardFields, 'name' as \"field\", name::text as content from $this->name");
+            if ($this->hasColumn('description')) array_push($tablesView, "select $standardFields, 'description' as \"field\", description::text as content from $this->name");
+            if ($tablesView) {
+                file_put_contents('name_tables_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
+            }
+
+            // compile created_by users
+            $tablesView = array();
+            if ($this->hasColumn('created_by_user_id')) array_push($tablesView, "select $standardFields, 0 as \"update\", created_by_user_id as \"by\" from $this->name");
+            if ($this->hasColumn('updated_by_user_id')) array_push($tablesView, "select $standardFields, 1 as \"update\", updated_by_user_id as \"by\" from $this->name");
+            if ($tablesView) {
+                file_put_contents('acorn_created_bys_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
+            }
+
+            // compile created|updated_at[_event_id] fields for calendar activity view
+            // TODO: Should this date_tables_view.sql be in the Model instead? We need the external_url from the Controller facade
+            $tablesView = array();
+            $nameColumn    = ($this->hasColumn('name') ? 'name::character varying(1024)' : 'NULL');
+            $dateStdFields = "'$modelClass' as model_type, id as model_id, '$this->name' as \"table\", $nameColumn as \"name\"";
+            // TODO: Old system: remove *_event_id (revert_timestamps.sql)
+            if ($this->hasColumn('created_at_event_id')) array_push($tablesView, "select $dateStdFields, 0 as \"update\", created_at_event_id as event_id from $this->name");
+            if ($this->hasColumn('updated_at_event_id')) array_push($tablesView, "select $dateStdFields, 1 as \"update\", updated_at_event_id as event_id from $this->name");
+            // TODO: New system, normal timestamps
+            if ($this->hasColumn('created_at')) array_push($tablesView, "select $dateStdFields, 0 as \"update\", created_at as datetime from $this->name");
+            if ($this->hasColumn('updated_at')) array_push($tablesView, "select $dateStdFields, 1 as \"update\", updated_at as datetime from $this->name");
+            if ($tablesView) {
+                file_put_contents('date_tables_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
+            }
+        }
+
         // --------------------------------- Update acorn_location_linked_view
         // Check all columns that foreign key to the locations table
-        static $firstLocationLinkedViewEntry = TRUE;
         $locationsTable = Table::find('acorn_location_locations');
         $tablesView     = array();
         $modelName      = $this->fullyQualifiedModelName();
@@ -596,11 +587,11 @@ class Table {
             if ($fk = $this->getColumnFK($columnCheck)) {
                 if ($fk->tableTo == $locationsTable && $fk->columnTo->isTheIdColumn()) {
                     array_push($tablesView, <<<SQL
-                        select 
+                        select
                                 "$columnCheck" as event_id,
-                                '$this->schema'::character varying(2048) as schema, 
-                                '$this->name'::character varying(2048) as table, 
-                                '$columnCheck'::character varying(2048) as column, 
+                                '$this->schema'::character varying(2048) as schema,
+                                '$this->name'::character varying(2048) as table,
+                                '$columnCheck'::character varying(2048) as column,
                                 '$modelName' as model_type,
                                 $idField as model_id
                         from $this->name
@@ -610,15 +601,11 @@ SQL
             }
         }
         if ($tablesView) {
-            $tablesViewString = implode("\nunion all\n", $tablesView);
-            if (!$firstLocationLinkedViewEntry) $tablesViewString = "\nunion all\n$tablesViewString";
-            file_put_contents('acorn_location_linked_view.sql', $tablesViewString, FILE_APPEND);
-            $firstLocationLinkedViewEntry = FALSE;
+            file_put_contents('acorn_location_linked_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
         }
 
         // --------------------------------- Update acorn_location_linked_address_view
         // Check all columns that foreign key to the locations table
-        static $firstLocationLinkedAddressViewEntry = TRUE;
         $addressesTable = Table::find('acorn_location_addresses');
         $tablesView     = array();
         $modelName      = $this->fullyQualifiedModelName();
@@ -628,11 +615,11 @@ SQL
             if ($fk = $this->getColumnFK($columnCheck)) {
                 if ($fk->tableTo == $addressesTable && $fk->columnTo->isTheIdColumn()) {
                     array_push($tablesView, <<<SQL
-                        select 
+                        select
                                 "$columnCheck" as event_id,
-                                '$this->schema'::character varying(2048) as schema, 
-                                '$this->name'::character varying(2048) as table, 
-                                '$columnCheck'::character varying(2048) as column, 
+                                '$this->schema'::character varying(2048) as schema,
+                                '$this->name'::character varying(2048) as table,
+                                '$columnCheck'::character varying(2048) as column,
                                 '$modelName' as model_type,
                                 $idField as model_id
                         from $this->name
@@ -642,15 +629,11 @@ SQL
             }
         }
         if ($tablesView) {
-            $tablesViewString = implode("\nunion all\n", $tablesView);
-            if (!$firstLocationLinkedAddressViewEntry) $tablesViewString = "\nunion all\n$tablesViewString";
-            file_put_contents('acorn_location_linked_address_view.sql', $tablesViewString, FILE_APPEND);
-            $firstLocationLinkedAddressViewEntry = FALSE;
+            file_put_contents('acorn_location_linked_address_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
         }
 
         // --------------------------------- Update acorn_calendar_linked_events_view
         // Check all columns that foreign key to the calendar events table
-        static $firstCalendarLinkedEventsViewEntry = TRUE;
         if ($this->pluginName() != 'Calendar') {
             $calendarEventsTable = Table::find('acorn_calendar_events');
             $tablesView          = array();
@@ -661,11 +644,11 @@ SQL
                 if ($fk = $this->getColumnFK($columnCheck)) {
                     if ($fk->tableTo == $calendarEventsTable && $fk->columnTo->isTheIdColumn()) {
                         array_push($tablesView, <<<SQL
-                            select 
+                            select
                                     "$columnCheck" as event_id,
-                                    '$this->schema'::character varying(2048) as schema, 
-                                    '$this->name'::character varying(2048) as table, 
-                                    '$columnCheck'::character varying(2048) as column, 
+                                    '$this->schema'::character varying(2048) as schema,
+                                    '$this->name'::character varying(2048) as table,
+                                    '$columnCheck'::character varying(2048) as column,
                                     '$modelName' as model_type,
                                     $idField as model_id
                             from $this->name
@@ -675,16 +658,12 @@ SQL
                 }
             }
             if ($tablesView) {
-                $tablesViewString = implode("\nunion all\n", $tablesView);
-                if (!$firstCalendarLinkedEventsViewEntry) $tablesViewString = "\nunion all\n$tablesViewString";
-                file_put_contents('acorn_calendar_linked_events_view.sql', $tablesViewString, FILE_APPEND);
-                $firstCalendarLinkedEventsViewEntry = FALSE;
+                file_put_contents('acorn_calendar_linked_events_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
             }
         }
 
         // --------------------------------- Update acorn_calendar_linked_calendars_view
-        // Check all columns that foreign key to the calendar events table
-        static $firstCalendarLinkedCalendarsViewEntry = TRUE;
+        // Check all columns that foreign key to the calendars table
         $calendarsTable = Table::find('acorn_calendar_calendars');
         $tablesView     = array();
         $modelName      = $this->fullyQualifiedModelName();
@@ -694,11 +673,11 @@ SQL
             if ($fk = $this->getColumnFK($columnCheck)) {
                 if ($fk->tableTo == $calendarsTable && $fk->columnTo->isTheIdColumn()) {
                     array_push($tablesView, <<<SQL
-                        select 
+                        select
                                 "$columnCheck" as calendar_id,
-                                '$this->schema'::character varying(2048) as schema, 
-                                '$this->name'::character varying(2048) as table, 
-                                '$columnCheck'::character varying(2048) as column, 
+                                '$this->schema'::character varying(2048) as schema,
+                                '$this->name'::character varying(2048) as table,
+                                '$columnCheck'::character varying(2048) as column,
                                 '$modelName' as model_type,
                                 $idField as model_id
                         from $this->name
@@ -708,10 +687,7 @@ SQL
             }
         }
         if ($tablesView) {
-            $tablesViewString = implode("\nunion all\n", $tablesView);
-            if (!$firstCalendarLinkedCalendarsViewEntry) $tablesViewString = "\nunion all\n$tablesViewString";
-            file_put_contents('acorn_calendar_linked_calendars_view.sql', $tablesViewString, FILE_APPEND);
-            $firstCalendarLinkedCalendarsViewEntry = FALSE;
+            file_put_contents('acorn_calendar_linked_calendars_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
         }
 
         return $changes;
