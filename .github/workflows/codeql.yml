@@ -1,4 +1,4 @@
-name: ShellCheck
+name: Semgrep
 
 on:
   push:
@@ -9,17 +9,24 @@ on:
     - cron: '0 4 * * 1'
 
 jobs:
-  shellcheck:
-    name: ShellCheck
+  semgrep:
+    name: Semgrep (PHP)
     runs-on: ubuntu-22.04
     permissions:
+      security-events: write
       contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install ShellCheck
-        run: sudo apt-get install -y shellcheck
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/php
+            p/owasp-top-ten
+          generateSarif: "1"
 
-      - name: ShellCheck acorn-create-system
-        run: shellcheck acorn-create-system
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
