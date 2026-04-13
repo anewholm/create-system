@@ -1,7 +1,8 @@
 # create-system — DDL-first WinterCMS plugin scaffolding
 
 ![Human made content](human-made-content.png "Human made content")
-\(Build CI/CD and CodeQL in progress...\)
+[![CI](https://github.com/anewholm/create-system/actions/workflows/ci.yml/badge.svg)](https://github.com/anewholm/create-system/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/anewholm/create-system/actions/workflows/semgrep.yml/badge.svg)](https://github.com/anewholm/create-system/actions/workflows/semgrep.yml)
 
 Information management systems have administration interfaces. University admin, legal system admin, and so on. The normal database administration UI, like PGAdmin or PocketBase, is almost all the UI you need for the project after you have built the DB, but not quite friendly enough. So why should I then have to spend a month repeating all the MVC from a ERD / DDL that already describes everything that is needed... with a few YAML comments to point the way?
 
