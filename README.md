@@ -1,5 +1,7 @@
 # create-system — DDL-first WinterCMS plugin scaffolding
 
+> The CI includes a full test system installation and create-system run on a real DB. Only on Ubuntu server.
+
 ![Human made content](human-made-content.png "Human made content")
 [![CI](https://github.com/anewholm/create-system/actions/workflows/ci.yml/badge.svg)](https://github.com/anewholm/create-system/actions/workflows/ci.yml)
 [![Security Scan](https://github.com/anewholm/create-system/actions/workflows/semgrep.yml/badge.svg)](https://github.com/anewholm/create-system/actions/workflows/semgrep.yml)
@@ -97,9 +99,9 @@ plugins/acorn/myapp/
 
 ## Compatibility
 
-| PHP  | PostgreSQL | WinterCMS output target |
-|------|------------|------------------------|
-| 8.1+ | 12+        | 1.2+ (Laravel 9/10/11) |
+| OS (LTS)   | PHP  | PostgreSQL | WinterCMS               |
+|------------|------|------------|-------------------------|
+| Ubuntu 22+ | 8.1+ | 15+        | 1.2+ (Laravel 9/10/11)  |
 
 ## Related
 
