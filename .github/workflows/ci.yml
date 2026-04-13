@@ -1,4 +1,6 @@
 name: CI
+# Full WinterCMS installation, fixture schema restore, generator run, then curl smoke tests.
+# Only on Ubuntu — acorn-setup-new-winter is Ubuntu-specific.
 
 on:
   push:
@@ -35,21 +37,17 @@ jobs:
       - name: Dry run — show usage (no DB required)
         run: php acorn-create-system 2>&1 | head -1
 
-  # ── Integration test: run against a real schema ───────────────────────────────
+  # ── Integration test: full install → generate → migrate → smoke test ─────────
 
   integrate:
-    name: Integration ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-22.04, ubuntu-24.04 ]
+    name: Integration
+    runs-on: ubuntu-22.04
 
     services:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: wintercms_test
+          POSTGRES_DB: wintercms
           POSTGRES_USER: createsystem
           POSTGRES_PASSWORD: testpassword
         ports:
@@ -72,44 +70,179 @@ jobs:
           extensions: pdo_pgsql, mbstring, xml, gd, curl, zip
           coverage: none
 
-      - name: Install WinterCMS 1.2.0
-        run: composer create-project wintercms/winter:1.2.0 wintercms --prefer-dist --no-interaction -q
-
-      - name: Check out Acorn module
+      - name: Check out setup scripts
         uses: actions/checkout@v4
         with:
-          repository: anewholm/acorn
-          path: wintercms/modules/acorn
+          repository: anewholm/scripts
+          path: scripts-repo
 
-      - name: Configure WinterCMS .env
-        working-directory: wintercms
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-create-system-wintercms-1.2.0
+          restore-keys: composer-create-system-
+
+      # Step 1 — Install WinterCMS + Acorn ─────────────────────────────────────
+      - name: Install WinterCMS + Acorn
         run: |
-          printf 'APP_NAME="Winter CMS"\nAPP_KEY=\nAPP_DEBUG=true\nAPP_URL=http://localhost:8000\nDB_CONNECTION=pgsql\nDB_HOST=127.0.0.1\nDB_PORT=5432\nDB_DATABASE=wintercms_test\nDB_USERNAME=createsystem\nDB_PASSWORD=testpassword\nCACHE_DRIVER=file\nSESSION_DRIVER=file\nQUEUE_CONNECTION=sync\n' | tee .env
-          php artisan key:generate --quiet
+          bash scripts-repo/acorn-setup-new-winter \
+            --winter-version=1.2.0 \
+            --admin-password=testpassword123 \
+            --db-username=createsystem \
+            --db-password=testpassword \
+            --db-host=127.0.0.1 \
+            --acorn-github=anewholm/acorn \
+            --no-interactive \
+            --no-dbauth \
+            --apply-l10-fix \
+            --no-apache \
+            --install-dir=${{ github.workspace }} \
+            wintercms
 
-      - name: Enable Acorn module
-        working-directory: wintercms
-        run: sed -i "s/'Cms'/'Cms', 'Acorn'/" config/cms.php
+      # Step 2 — Restore test database (fixture schema) ────────────────────────
+      - name: Restore test database
+        run: |
+          PGPASSWORD=testpassword psql -h 127.0.0.1 -U createsystem -d wintercms \
+            -f ${{ github.workspace }}/create-system/tests/fixture_schema.sql
 
-      - name: Run WinterCMS migrations
-        working-directory: wintercms
-        run: php artisan winter:up
-
-      - name: Load test fixture schema
-        run: PGPASSWORD=testpassword psql -h 127.0.0.1 -U createsystem -d wintercms_test -f create-system/tests/fixture_schema.sql
-
+      # Step 3 — Run acorn-create-system ───────────────────────────────────────
       - name: Install create-system Composer dependencies
         working-directory: create-system
         run: composer install --no-interaction --no-progress
 
-      - name: Run acorn-create-system against test plugin
-        working-directory: wintercms
-        run: php $GITHUB_WORKSPACE/create-system/acorn-create-system test
+      - name: Run acorn-create-system against test fixture
+        working-directory: ${{ github.workspace }}/wintercms
+        run: php ${{ github.workspace }}/create-system/acorn-create-system test
 
       - name: Check generated PHP files are syntactically valid
-        working-directory: wintercms
+        working-directory: ${{ github.workspace }}/wintercms
         run: find plugins/acorn/test -name "*.php" -exec php -l {} \;
 
       - name: Show generated file list
-        working-directory: wintercms
+        working-directory: ${{ github.workspace }}/wintercms
         run: find plugins/acorn/test -type f | sort
+
+      # Drop the fixture tables so the generated migrations can recreate them.
+      - name: Drop fixture tables (recreated by generated migrations)
+        run: |
+          PGPASSWORD=testpassword psql -h 127.0.0.1 -U createsystem -d wintercms -c \
+            "DROP TABLE IF EXISTS acorn_test_attendees, acorn_test_events, acorn_test_categories CASCADE;"
+
+      - name: Migrate generated plugin (winter:up)
+        working-directory: ${{ github.workspace }}/wintercms
+        run: php artisan winter:up
+
+      # Step 4 — Smoke tests against the generated plugin ──────────────────────
+      - name: Configure PHP error logging
+        run: printf '[PHP]\nerror_log=/tmp/php-errors.log\nlog_errors=1\ndisplay_errors=0\nerror_reporting=32767\nmemory_limit=256M\npcre.jit=0\n' > /tmp/ci-php.ini
+
+      - name: Start PHP server
+        working-directory: ${{ github.workspace }}/wintercms
+        env:
+          PHP_INI_SCAN_DIR: "/tmp:"
+          PHP_CLI_SERVER_WORKERS: 4
+        run: nohup php artisan serve --port=8000 > /tmp/php-server.log 2>&1 &
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 20); do
+            curl -sfL http://localhost:8000/backend/backend/auth/signin -o /dev/null && break
+            sleep 2
+          done
+
+      - name: Login and obtain session cookie
+        run: |
+          BODY=$(curl -s -L -c /tmp/cookies.txt http://localhost:8000/backend/backend/auth/signin)
+          TOKEN=$(echo "$BODY" | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="\([^"]*\)"/\1/' | head -1)
+          echo "CSRF token extracted: ${TOKEN:0:10}..."
+          test -n "$TOKEN"
+
+          RESPONSE=$(curl -s -L \
+            -c /tmp/cookies.txt -b /tmp/cookies.txt \
+            --data-urlencode "_token=$TOKEN" \
+            -d "postback=1&login=admin&password=testpassword123" \
+            http://localhost:8000/backend/backend/auth/signin)
+
+          if echo "$RESPONSE" | grep -qi 'class="outer signin"'; then
+            echo "Login FAILED — still on signin page:"
+            echo "$RESPONSE" | head -40
+            exit 1
+          fi
+          echo "Login: OK"
+
+      - name: Generated categories list loads
+        run: |
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" \
+            -b /tmp/cookies.txt -c /tmp/cookies.txt \
+            http://localhost:8000/backend/acorn/test/categories)
+          echo "Categories list status: $STATUS"
+          test "$STATUS" = "200"
+
+      - name: Generated events list loads
+        run: |
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" \
+            -b /tmp/cookies.txt -c /tmp/cookies.txt \
+            http://localhost:8000/backend/acorn/test/events)
+          echo "Events list status: $STATUS"
+          test "$STATUS" = "200"
+
+      - name: Generated categories create form loads
+        run: |
+          RESPONSE=$(curl -s -L --retry 3 --retry-delay 5 --retry-all-errors \
+            -w "\nHTTP_STATUS:%{http_code}" \
+            -b /tmp/cookies.txt -c /tmp/cookies.txt \
+            http://localhost:8000/backend/acorn/test/categories/create)
+          STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | sed 's/.*HTTP_STATUS://')
+          echo "Categories create form status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "=== Response body (first 60 lines) ==="
+            echo "$RESPONSE" | grep -v "HTTP_STATUS:" | head -60
+          fi
+          test "$STATUS" = "200"
+
+      - name: Create a category via AJAX
+        run: |
+          BODY=$(curl -s -b /tmp/cookies.txt http://localhost:8000/backend/acorn/test/categories/create)
+          TOKEN=$(echo "$BODY" | grep -o 'name="csrf-token" content="[^"]*"' | sed 's/.*content="\([^"]*\)"/\1/' | head -1)
+          test -n "$TOKEN"
+
+          STATUS=$(curl -s -w "%{http_code}" -o /dev/null \
+            -b /tmp/cookies.txt -c /tmp/cookies.txt \
+            -H "X-WINTER-REQUEST-HANDLER: onSave" \
+            -H "X-WINTER-REQUEST-PARTIALS: " \
+            -H "X-Requested-With: XMLHttpRequest" \
+            -F "_token=$TOKEN" \
+            -F "Category[name]=CI Test Category" \
+            http://localhost:8000/backend/acorn/test/categories/create)
+          echo "Create category status: $STATUS"
+          test "$STATUS" = "200" -o "$STATUS" = "302"
+
+      - name: Verify category appears in database
+        run: |
+          COUNT=$(PGPASSWORD=testpassword psql -h 127.0.0.1 -U createsystem -d wintercms \
+            -t -c "SELECT count(*) FROM acorn_test_categories WHERE name='CI Test Category';" | tr -d ' ')
+          echo "Category records in DB: $COUNT"
+          test "$COUNT" -ge "1"
+
+      - name: Generated events create form loads
+        run: |
+          STATUS=$(curl -s -L --retry 3 --retry-delay 5 --retry-all-errors \
+            -o /dev/null -w "%{http_code}" \
+            -b /tmp/cookies.txt -c /tmp/cookies.txt \
+            http://localhost:8000/backend/acorn/test/events/create)
+          echo "Events create form status: $STATUS"
+          test "$STATUS" = "200"
+
+      - name: Dump PHP server log on failure
+        if: failure()
+        run: cat /tmp/php-server.log
+
+      - name: Dump PHP error log on failure
+        if: failure()
+        run: cat /tmp/php-errors.log || echo "(no PHP error log)"
+
+      - name: Dump WinterCMS log on failure
+        if: failure()
+        working-directory: ${{ github.workspace }}/wintercms
+        run: find storage/logs -name "*.log" -exec cat {} \;
