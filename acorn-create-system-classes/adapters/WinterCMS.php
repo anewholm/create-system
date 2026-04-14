@@ -184,12 +184,8 @@ class WinterCMS extends Framework
         $this->removeMethod($pluginFilePath, 'registerNavigation');
         $this->replaceInFile( $pluginFilePath, '/Registers backend navigation items for this plugin./', 'Navigation in plugin.yaml.');
 
-        // Adding cross plugin dependencies
-        $requirePlugins = array(
-            'Acorn.Calendar'  => TRUE,
-            'Acorn.Location'  => TRUE,
-            'Acorn.Messaging' => TRUE
-        );
+        // Adding cross plugin dependencies (derived from FK relations only)
+        $requirePlugins = array();
         foreach ($plugin->pluginRequires() as $fqn => &$otherPlugin) {
             // Check for direct recursion
             $circular = FALSE;
@@ -2469,10 +2465,14 @@ PHP
         // ----------------------------------------------- Interface variants
         // TODO: Not used anymore. Superceeded by generic aa/partials/create|update.php
         // Remove standard create|update.php
-        print("    Unlink {$YELLOW}$controllerDirPath/update.php{$NC}\n");
-        unlink("$controllerDirPath/update.php");
-        print("    Unlink {$YELLOW}$controllerDirPath/create.php{$NC}\n");
-        unlink("$controllerDirPath/create.php");
+        if (file_exists("$controllerDirPath/update.php")) {
+            print("    Unlink {$YELLOW}$controllerDirPath/update.php{$NC}\n");
+            unlink("$controllerDirPath/update.php");
+        }
+        if (file_exists("$controllerDirPath/create.php")) {
+            print("    Unlink {$YELLOW}$controllerDirPath/create.php{$NC}\n");
+            unlink("$controllerDirPath/create.php");
+        }
 
         // Body class(es)
         $bodyClasses = array('compact-container');
