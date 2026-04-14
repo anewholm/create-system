@@ -123,13 +123,8 @@ jobs:
         working-directory: ${{ github.workspace }}/wintercms
         run: find plugins/acorn/test -type f | sort
 
-      # Drop the fixture tables so the generated migrations can recreate them.
-      - name: Drop fixture tables (recreated by generated migrations)
-        run: |
-          PGPASSWORD=testpassword psql -h 127.0.0.1 -U createsystem -d wintercms -c \
-            "DROP TABLE IF EXISTS acorn_test_attendees, acorn_test_events, acorn_test_categories CASCADE;"
-
-      - name: Migrate generated plugin (winter:up)
+      # Register generated plugin in WinterCMS (tables already exist from fixture restore above)
+      - name: Register generated plugin (winter:up)
         working-directory: ${{ github.workspace }}/wintercms
         run: php artisan winter:up
 
