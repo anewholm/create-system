@@ -39,13 +39,6 @@ git clone https://github.com/anewholm/create-system /var/www/scripts/acorn-creat
 composer install -d /var/www/scripts/acorn-create-system-dir
 ```
 
-## Prerequisites
-
-- [PHP](https://www.php.net/downloads.php) v8.1+
-- [PostgreSQL](https://www.postgresql.org/download/) v16+ (must be running and accessible)
-- [Composer](https://getcomposer.org/download/) v2
-- [WinterCMS](https://wintercms.com/install) installation (the generated output targets WinterCMS v1.2+)
-
 ## YAML comment vocabulary
 
 Table, column, and FK comments in PostgreSQL can contain YAML fragments to control generation. See [PATTERNS.md](PATTERNS.md) for the full catalogue of patterns and their YAML keys.
@@ -99,9 +92,9 @@ plugins/acorn/myapp/
 
 ## Compatibility
 
-| OS (LTS)   | PHP  | PostgreSQL | WinterCMS               |
-|------------|------|------------|-------------------------|
-| Ubuntu 22+ | 8.1+ | 15+        | 1.2+ (Laravel 9/10/11)  |
+| OS (LTS) | [WinterCMS](https://wintercms.com/install) (target) | [Composer](https://getcomposer.org/download/) | [PHP](https://www.php.net/downloads.php)  | [PostgreSQL](https://www.postgresql.org/download/) |
+|-----------|---------|---|------|------------|
+| Ubuntu 22+ | v1.2+ | 2 | v8.1+ | v15+ |
 
 ## Related
 
