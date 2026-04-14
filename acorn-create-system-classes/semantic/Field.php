@@ -424,9 +424,20 @@ class Field {
 
     protected static function create(Model $model, array $fieldDefinition, Column|NULL $column, array $relations): Field
     {
-        if      ($column && $column->isTheIdColumn()) $field = new IdField(       $model, $fieldDefinition, $column, $relations);
-        else if ($column && $column->isForeignID())   $field = new ForeignIdField($model, $fieldDefinition, $column, $relations);
-        else $field = new Field($model, $fieldDefinition, $column);
+        if ($column && $column->isTheIdColumn()) {
+            $field = new IdField($model, $fieldDefinition, $column, $relations);
+        } else if ($column && $column->isForeignID()) {
+            try {
+                $field = new ForeignIdField($model, $fieldDefinition, $column, $relations);
+            } catch (\Exception $e) {
+                // No FK relation for this *_id column — render as plain text
+                global $YELLOW, $NC;
+                print("      {$YELLOW}Warning{$NC}: {$e->getMessage()} — rendered as plain field\n");
+                $field = new Field($model, $fieldDefinition, $column);
+            }
+        } else {
+            $field = new Field($model, $fieldDefinition, $column);
+        }
 
         // Tag with a semantic IS pattern (inferred from field class, column type, and relation type).
         // Model::fields() may override this for EMBEDDED_1TO1 and HAS_MANY_DEEP_SORTABLE contexts.
