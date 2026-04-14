@@ -297,42 +297,41 @@ class WinterCMS extends Framework
         // TODO: Move SQL/updates => winterCms/updates
         $scriptsUpdatesPath = "$this->scriptDirPath/SQL/updates";
         $pluginUpdatePath   = "$pluginDirectoryPath/updates";
-        if (!is_dir($scriptsUpdatesPath)) {
-            print("  {$RED}WARNING{$NC}: No {$YELLOW}$scriptsUpdatesPath{NC} found to populate the plugin /updates/. Creating...\n");
-            mkdir($scriptsUpdatesPath, TRUE);
-        }
-
-        print("  Syncing {$GREEN}$pluginUpdatePath{$NC}\n");
-        if (!is_dir($pluginUpdatePath)) {
-            echo "  Made {$YELLOW}$pluginUpdatePath{$NC}\n";
-            mkdir($pluginUpdatePath, 0775, TRUE);
-        }
-        foreach (scandir($scriptsUpdatesPath) as $file) {
-            if (!in_array($file, array(".",".."))) {
-                $scriptsFilePath = realpath("$scriptsUpdatesPath/$file");
-                $updatesFilePath = "$pluginUpdatePath/$file";
-                if (file_exists($updatesFilePath)) {
-                    print("    Ommitting {$RED}$file{$NC}\n");
-                } else {
-                    print("    Copied {$YELLOW}$file{$NC} => updates/\n");
-                    copy($scriptsFilePath, $updatesFilePath);
-                    // ReWrite <Plugin> in the namespace(s) for copied files
-                    $this->replaceInFile($updatesFilePath, '/<Plugin>/', $plugin->name, FALSE);
-                    // Set execute flags
-                    $perms = fileperms($scriptsFilePath);
-                    chmod($updatesFilePath, $perms);
+        if (is_dir($scriptsUpdatesPath)) {
+            print("  Syncing {$GREEN}$pluginUpdatePath{$NC}\n");
+            if (!is_dir($pluginUpdatePath)) {
+                echo "  Made {$YELLOW}$pluginUpdatePath{$NC}\n";
+                mkdir($pluginUpdatePath, 0775, TRUE);
+            }
+            foreach (scandir($scriptsUpdatesPath) as $file) {
+                if (!in_array($file, array(".",".."))) {
+                    $scriptsFilePath = realpath("$scriptsUpdatesPath/$file");
+                    $updatesFilePath = "$pluginUpdatePath/$file";
+                    if (file_exists($updatesFilePath)) {
+                        print("    Ommitting {$RED}$file{$NC}\n");
+                    } else {
+                        print("    Copied {$YELLOW}$file{$NC} => updates/\n");
+                        copy($scriptsFilePath, $updatesFilePath);
+                        // ReWrite <Plugin> in the namespace(s) for copied files
+                        $this->replaceInFile($updatesFilePath, '/<Plugin>/', $plugin->name, FALSE);
+                        // Set execute flags
+                        $perms = fileperms($scriptsFilePath);
+                        chmod($updatesFilePath, $perms);
+                    }
                 }
             }
-        }
 
-        // --------------------------------------------- Update commands
-        // Re-create up & down.sql
-        if (file_exists("$pluginUpdatePath/acorn-winter-update-sqls")) {
-            print("  Run {$GREEN}acorn-winter-update-sqls{$NC}\n");
-            $this->runBashScript("$pluginUpdatePath/acorn-winter-update-sqls", TRUE);
+            // --------------------------------------------- Update commands
+            // Re-create up & down.sql
+            if (file_exists("$pluginUpdatePath/acorn-winter-update-sqls")) {
+                print("  Run {$GREEN}acorn-winter-update-sqls{$NC}\n");
+                $this->runBashScript("$pluginUpdatePath/acorn-winter-update-sqls", TRUE);
+            } else {
+                print("{$RED}ERROR{$NC}: No {$YELLOW}acorn-winter-update-sqls{$NC} available\n");
+                exit(1);
+            }
         } else {
-            print("{$RED}ERROR{$NC}: No {$YELLOW}acorn-winter-update-sqls{$NC} available\n");
-            exit(1);
+            print("  Note: No {$YELLOW}$scriptsUpdatesPath{$NC} — skipping SQL migration sync\n");
         }
 
         // Functions fn_acorn_*_seed_*()
@@ -872,7 +871,9 @@ PHP;
             // create:model makes the v1.0.1/ directories also. Remove them
             $scriptsUpdatesPath = "$this->scriptDirPath/SQL/updates";
             $pluginUpdatePath   = "$pluginDirectoryPath/updates";
-            copy("$scriptsUpdatesPath/version.yaml", "$pluginUpdatePath/version.yaml");
+            if (is_dir($scriptsUpdatesPath) && file_exists("$scriptsUpdatesPath/version.yaml")) {
+                copy("$scriptsUpdatesPath/version.yaml", "$pluginUpdatePath/version.yaml");
+            }
             self::removeDir("$pluginDirectoryPath/updates/v1.0.1/", TRUE, TRUE, FALSE);
 
             // Explicit plural name injection
