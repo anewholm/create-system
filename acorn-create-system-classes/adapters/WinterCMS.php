@@ -61,7 +61,8 @@ class WinterCMS extends Framework
         // Get DB connection parameters from Laravel
         if (!$this->DB_HOST) $this->DB_HOST = '127.0.0.1';
         if (!$this->DB_PORT) $this->DB_PORT = 5432;
-        if ( $this->DB_CONNECTION != 'pgsql' || $this->DB_HOST != "127.0.0.1" ) {
+        $localHosts = ['127.0.0.1', 'localhost', '::1'];
+        if ( $this->DB_CONNECTION != 'pgsql' || !in_array($this->DB_HOST, $localHosts) ) {
             throw new Exception("$this->DB_CONNECTION@$this->DB_HOST:$this->DB_PORT is not local. Aborted");
         }
         $this->connection = "pgsql:host=$this->DB_HOST;dbname=$this->DB_DATABASE;port=$this->DB_PORT;";
@@ -2106,7 +2107,7 @@ PHP
             print("  {$RED}WARNING{$NC}: Controller file [$controllerFilePath] already exists. Leaving.\n");
         } else {
             print("Controller: $controller->name\n");
-            $this->runWinterCommand('create:controller', 2, $controller->model->plugin->dotClassName(), $controller->name);
+            $this->runWinterCommand('create:controller', 2, $controller->model->plugin->dotClassName(), $controller->name, '--stubs');
 
             // Inheritance
             $author = $controller->author();
