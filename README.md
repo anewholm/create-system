@@ -1,6 +1,6 @@
 # create-system — DDL-first WinterCMS plugin scaffolding
 
-> CI development in **progress**. Includes a full test system installation and create-system run on a real DB. Only on Ubuntu server.
+> CI includes a full test system installation and create-system run on a real DB. Only on Ubuntu server.
 
 ![Human made content](human-made-content.png "Human made content")
 [![CI](https://github.com/anewholm/create-system/actions/workflows/ci.yml/badge.svg)](https://github.com/anewholm/create-system/actions/workflows/ci.yml)
