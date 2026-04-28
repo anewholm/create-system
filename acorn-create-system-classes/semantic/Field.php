@@ -152,6 +152,7 @@ class Field {
     // UnHandled settings, pass through
     // These mostly come from Yaml fields.yaml parsing
     public $preset;
+    public $classExists; // WinterCMS/MorphConfig directive — stored but not used by create-system
     public $width;
     public $height;
     public $size;
@@ -200,6 +201,7 @@ class Field {
         // Overwrite all defaults
         foreach ($definition as $name => $value) {
             if ($name == '#') $name = 'yamlComment';
+            if ($name == 'class-exists') $name = 'classExists';
             if (!property_exists($this, $name)) {
                 $value = (is_string($value) ? $value : '?');
                 throw new Exception("Property [$name] with value [$value] does not exist on Field");
