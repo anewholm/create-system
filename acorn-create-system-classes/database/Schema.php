@@ -39,8 +39,10 @@ class Schema {
         }
         $this->parsedComment = \Spyc::YAMLLoadString($this->comment);
         foreach ($this->parsedComment as $name => $value) {
+            // Plain prose comment (e.g. "standard public schema") parses as [0 => "..."]
+            if ($name === 0 && is_string($value) && preg_match('/^standard [a-z]+ schema$/', $value)) continue;
             $nameCamel = Str::camel($name);
-            if (!property_exists($this, $nameCamel)) 
+            if (!property_exists($this, $nameCamel))
                 self::blockingAlert("Property [$nameCamel] does not exist on [$this->name]");
             if (!isset($this->$nameCamel)) $this->$nameCamel = $value;
         }

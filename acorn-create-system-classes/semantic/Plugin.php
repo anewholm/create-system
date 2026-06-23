@@ -229,10 +229,14 @@ class Plugin {
         return $this->framework->langEnPath($this);
     }
 
-    public function dirName(): string
+    public function dirName(?string $authorOrFull = NULL, ?string $name = NULL): string
     {
-        $authorLower = strtolower($this->author);
-        $nameLower   = strtolower($this->name);
+        $author = $authorOrFull;
+        if (strchr($authorOrFull, '.') !== FALSE) {
+            [$author, $name] = explode('.', $authorOrFull);
+        }
+        $authorLower = strtolower($author ?: $this->author);
+        $nameLower   = strtolower($name   ?: $this->name);
         return "$authorLower/$nameLower";
     }
 

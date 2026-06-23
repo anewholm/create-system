@@ -241,9 +241,12 @@ class Table {
 
             // ------------------------------------ Content tables
             if ($this->isContentTable()) {
-                if (!$this->hasColumn('id', 'uuid', 'gen_random_uuid()')) {
-                    // TODO: Offer to add it?
-                    throw new Exception("Content table [$this->name] has no id(uuid/gen_random_uuid()) column");
+                // Not necessarily a UUID system
+                $hasID_UUID   = $this->hasColumn('id', 'uuid', 'gen_random_uuid()');
+                $hasID_int    = $this->hasColumn('id', 'integer');
+                $hasID_bigint = $this->hasColumn('id', 'bigint');
+                if (!$hasID_UUID && !$hasID_int && !$hasID_bigint) {
+                    throw new Exception("Content table [$this->name] has no id(int|bigint|uuid+gen_random_uuid()) column");
                 }
 
                 // ------------------------ name
@@ -345,8 +348,13 @@ class Table {
                     print("{$RED}WARNING$NC: $error\n");
                     $yn = readline("Create [$columnCheck] (y) ?");
                     if ($yn != 'n') {
-                        $this->db->addColumn($this->fullyQualifiedName(), $columnCheck, 'uuid', NULL);
-                        $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'acorn_user_users');
+                        if (Table::find('acorn_user_users')) {
+                            $this->db->addColumn($this->fullyQualifiedName(), $columnCheck, 'uuid', NULL);
+                            $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'acorn_user_users');
+                        } else {
+                            $this->db->addColumn($this->fullyQualifiedName(), $columnCheck, 'integer', NULL);
+                            $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'backend_users');
+                        }
                         print("Added [$columnCheck] NULLABLE with FK\n");
                         $changes = TRUE;
                     }
@@ -361,15 +369,17 @@ class Table {
                         $changes = TRUE;
                     }
                 }
-                $triggerCheck = 'fn_acorn_created_by_user_id';
-                if ($this->hasColumn($columnCheck) && !$this->hasTrigger($triggerCheck)) {
-                    $error = "Content table [$YELLOW$this->name$NC] has [$YELLOW$columnCheck$NC] column but no trigger [$YELLOW$triggerCheck$NC]";
-                    print("{$RED}WARNING$NC: $error\n");
-                    $yn = readline("Create [$triggerCheck] (y) ?");
-                    if ($yn != 'n') {
-                        $this->db->addTrigger($this->fullyQualifiedName(), $triggerCheck, 'BEFORE', array('INSERT'));
-                        print("Added [$triggerCheck]\n");
-                        $changes = TRUE;
+                if (Table::find('acorn_user_users')) {
+                    $triggerCheck = 'fn_acorn_created_by_user_id';
+                    if ($this->hasColumn($columnCheck) && !$this->hasTrigger($triggerCheck)) {
+                        $error = "Content table [$YELLOW$this->name$NC] has [$YELLOW$columnCheck$NC] column but no trigger [$YELLOW$triggerCheck$NC]";
+                        print("{$RED}WARNING$NC: $error\n");
+                        $yn = readline("Create [$triggerCheck] (y) ?");
+                        if ($yn != 'n') {
+                            $this->db->addTrigger($this->fullyQualifiedName(), $triggerCheck, 'BEFORE', array('INSERT'));
+                            print("Added [$triggerCheck]\n");
+                            $changes = TRUE;
+                        }
                     }
                 }
                 $columnCheck = 'created_by';
@@ -391,8 +401,13 @@ class Table {
                     print("{$RED}WARNING$NC: $error\n");
                     $yn = readline("Create [$columnCheck] (y) ?");
                     if ($yn != 'n') {
-                        $this->db->addColumn($this->fullyQualifiedName(), $columnCheck, 'uuid', NULL, Column::NULLABLE);
-                        $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'acorn_user_users');
+                        if (Table::find('acorn_user_users')) {
+                            $this->db->addColumn($this->fullyQualifiedName(), $columnCheck, 'uuid', NULL, Column::NULLABLE);
+                            $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'acorn_user_users');
+                        } else {
+                            $this->db->addColumn($this->fullyQualifiedName(), $columnCheck, 'integer', NULL, Column::NULLABLE);
+                            $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'backend_users');
+                        }
                         print("Added [$columnCheck] NULLABLE with FK\n");
                         $changes = TRUE;
                     }
@@ -407,15 +422,17 @@ class Table {
                         $changes = TRUE;
                     }
                 }
-                $triggerCheck = 'fn_acorn_updated_by_user_id';
-                if ($this->hasColumn($columnCheck) && !$this->hasTrigger($triggerCheck)) {
-                    $error = "Content table [$YELLOW$this->name$NC] has [$YELLOW$columnCheck$NC] column but no trigger [$YELLOW$triggerCheck$NC]";
-                    print("{$RED}WARNING$NC: $error\n");
-                    $yn = readline("Create [$triggerCheck] (y) ?");
-                    if ($yn != 'n') {
-                        $this->db->addTrigger($this->fullyQualifiedName(), $triggerCheck, 'BEFORE', array('UPDATE'));
-                        print("Added [$triggerCheck]\n");
-                        $changes = TRUE;
+                if (Table::find('acorn_user_users')) {
+                    $triggerCheck = 'fn_acorn_updated_by_user_id';
+                    if ($this->hasColumn($columnCheck) && !$this->hasTrigger($triggerCheck)) {
+                        $error = "Content table [$YELLOW$this->name$NC] has [$YELLOW$columnCheck$NC] column but no trigger [$YELLOW$triggerCheck$NC]";
+                        print("{$RED}WARNING$NC: $error\n");
+                        $yn = readline("Create [$triggerCheck] (y) ?");
+                        if ($yn != 'n') {
+                            $this->db->addTrigger($this->fullyQualifiedName(), $triggerCheck, 'BEFORE', array('UPDATE'));
+                            print("Added [$triggerCheck]\n");
+                            $changes = TRUE;
+                        }
                     }
                 }
                 $columnCheck = 'updated_by';
@@ -541,21 +558,22 @@ class Table {
             && !$this->isModule()
             && $this->isContentTable()
         ) {
+            $fqn            = $this->fullyQualifiedName();
             $modelClass     = $this->fullyQualifiedModelName();
             $standardFields = "'$modelClass' as model_type, id as model_id, '$this->name' as \"table\"";
 
             // compile names view
             $tablesView = array();
-            if ($this->hasColumn('name'))        array_push($tablesView, "select $standardFields, 'name' as \"field\", name::text as content from $this->name");
-            if ($this->hasColumn('description')) array_push($tablesView, "select $standardFields, 'description' as \"field\", description::text as content from $this->name");
+            if ($this->hasColumn('name'))        array_push($tablesView, "select $standardFields, 'name' as \"field\", name::text as content from $fqn");
+            if ($this->hasColumn('description')) array_push($tablesView, "select $standardFields, 'description' as \"field\", description::text as content from $fqn");
             if ($tablesView) {
                 file_put_contents('name_tables_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
             }
 
             // compile created_by users
             $tablesView = array();
-            if ($this->hasColumn('created_by_user_id')) array_push($tablesView, "select $standardFields, 0 as \"update\", created_by_user_id as \"by\" from $this->name");
-            if ($this->hasColumn('updated_by_user_id')) array_push($tablesView, "select $standardFields, 1 as \"update\", updated_by_user_id as \"by\" from $this->name");
+            if ($this->hasColumn('created_by_user_id')) array_push($tablesView, "select $standardFields, 0 as \"update\", created_by_user_id as \"by\" from $fqn");
+            if ($this->hasColumn('updated_by_user_id')) array_push($tablesView, "select $standardFields, 1 as \"update\", updated_by_user_id as \"by\" from $fqn");
             if ($tablesView) {
                 file_put_contents('acorn_created_bys_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
             }
@@ -566,11 +584,11 @@ class Table {
             $nameColumn    = ($this->hasColumn('name') ? 'name::character varying(1024)' : 'NULL');
             $dateStdFields = "'$modelClass' as model_type, id as model_id, '$this->name' as \"table\", $nameColumn as \"name\"";
             // TODO: Old system: remove *_event_id (revert_timestamps.sql)
-            if ($this->hasColumn('created_at_event_id')) array_push($tablesView, "select $dateStdFields, 0 as \"update\", created_at_event_id as event_id from $this->name");
-            if ($this->hasColumn('updated_at_event_id')) array_push($tablesView, "select $dateStdFields, 1 as \"update\", updated_at_event_id as event_id from $this->name");
+            if ($this->hasColumn('created_at_event_id')) array_push($tablesView, "select $dateStdFields, 0 as \"update\", created_at_event_id as event_id from $fqn");
+            if ($this->hasColumn('updated_at_event_id')) array_push($tablesView, "select $dateStdFields, 1 as \"update\", updated_at_event_id as event_id from $fqn");
             // TODO: New system, normal timestamps
-            if ($this->hasColumn('created_at')) array_push($tablesView, "select $dateStdFields, 0 as \"update\", created_at as datetime from $this->name");
-            if ($this->hasColumn('updated_at')) array_push($tablesView, "select $dateStdFields, 1 as \"update\", updated_at as datetime from $this->name");
+            if ($this->hasColumn('created_at')) array_push($tablesView, "select $dateStdFields, 0 as \"update\", created_at as datetime from $fqn");
+            if ($this->hasColumn('updated_at')) array_push($tablesView, "select $dateStdFields, 1 as \"update\", updated_at as datetime from $fqn");
             if ($tablesView) {
                 file_put_contents('date_tables_view.sql', "\nunion all\n" . implode("\nunion all\n", $tablesView), FILE_APPEND);
             }
@@ -908,7 +926,7 @@ SQL
         foreach ($this->columns as $column) {
             if ($column->isCustom()) {
                 foreach ($column->foreignKeysFrom as $fk) {
-                    if ($fk->type == '1to1' || ($orLeaf && $fk->type == 'leaf')) {
+                    if ($fk->type() == '1to1' || ($orLeaf && $fk->type() == 'leaf')) {
                         $has = TRUE;
                         break;
                     }
@@ -1146,7 +1164,7 @@ SQL
     // ---------------------------------------------- Ownership, authors & plugins
     public function isOurs(): bool
     {
-        return ($this->authorName() == 'Acorn');
+        return in_array($this->authorName(), ['Acorn', 'Fifteen']);
     }
 
     public function isKnownAcornPlugin(): bool

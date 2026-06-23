@@ -2444,9 +2444,9 @@ class Model {
 
             if ($field->sortable) {
                 if (!$field->sqlSelect)
-                    throw new Exception("[$this->name::$name] field is sortable but without (fully qualified) select clause. This will cause ambiguity issues");
+                    print("WARNING: [$this->name::$name] field is sortable but without (fully qualified) select clause. This will cause ambiguity issues\n");
                 else if (strstr($field->sqlSelect, '.') === FALSE)
-                    throw new Exception("[$this->name::$name] field is sortable but the select: is not fully qualified: [$field->sqlSelect] This will cause ambiguity issues");
+                    print("WARNING: [$this->name::$name] field is sortable but the select: is not fully qualified: [$field->sqlSelect] This will cause ambiguity issues\n");
             }
 
             if ($field->nested) {
@@ -2458,7 +2458,7 @@ class Model {
                 $dbLangPath = $field->dbObject()?->dbLangPath();
                 $disabled   = ($dbLangPath ? '' : 'disabled="disabled"');
                 // Prevent YAML indentation normalization
-                $dbComment  = str_replace(" ", '&nbsp;', $field->comment); 
+                $dbComment  = str_replace(" ", '&nbsp;', $field->comment);
 
                 if (!$field->fromYaml) { // Let's not overwrite YAML comments
                     if (is_array($dbComment))

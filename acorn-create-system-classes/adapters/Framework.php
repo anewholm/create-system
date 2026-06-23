@@ -390,9 +390,14 @@ class Framework
         return '';
     }
 
-    public function pluginExists(Plugin &$plugin): bool
+    public function pluginExists(Plugin|string &$plugin): bool
     {
-        return is_file($this->pluginFile($plugin));
+        // string: "Author.Plugin" => plugins/author/plugin/Plugin.php
+        // Plugin => plugins/author/plugin/Plugin.php
+        return (is_string($plugin) 
+            ? is_file()
+            : is_file($this->pluginFile($plugin))
+        );
     }
 
     protected function pluginHasGit(Plugin &$plugin): bool

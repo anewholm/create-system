@@ -21,17 +21,31 @@ use Acorn\CreateSystem\Adapters\OLAP;
 
 // ------------------------------------------- Inputs
 $file = basename(__FILE__);
-print("Usage: $file [<plugin-name|all|lang.yaml> <git command (push|ask|leave)> <write README (y|n)>]\n");
-$installPlugins = (isset($argv[1]) ? $argv[1] : NULL);
-$gitPolicy      = (isset($argv[2]) ? $argv[2] : NULL);
-$writeREADME    = ((isset($argv[3]) ? $argv[3] : 'n') == 'y');
+print("Usage: $file [options] [<plugin-name|all|lang.yaml> [<git-command (push|ask|leave)>]]\n");
+print("Options:\n");
+print("  -y, --yes     Auto-confirm all interactive prompts\n");
+print("  --readme      Write README.md for each processed plugin\n");
+
+$opts = getopt('y', ['yes', 'readme'], $restIndex);
+$autoYes     = isset($opts['y']) || isset($opts['yes']);
+$writeREADME = isset($opts['readme']);
+
+$positional     = array_slice($argv, $restIndex);
+$installPlugins = $positional[0] ?? null;
+$gitPolicy      = $positional[1] ?? null;
+
+// Legacy: third positional arg was 'y' to write README
+if (!$writeREADME && ($positional[2] ?? 'n') === 'y') $writeREADME = true;
+
+// 'all' is an alias for '*'
+if ($installPlugins === 'all') $installPlugins = '*';
 
 // ------------------------------------------- lang.yaml
 // TODO: lang.yaml import not finished
 if ($installPlugins == 'lang.yaml') {
     print("Importing language translation file [$installPlugins]\n");
     print("This will overwrite translation values throughout the database\n");
-    $yn = readline("Are you sure (y|n)? [n] ");
+    $yn = $autoYes ? 'y' : readline("Are you sure (y|n)? [n] ");
     if ($yn == 'y') {
         $langTranslationFile = \Spyc::YAMLLoad($installPlugins);
         $tables = $langTranslationFile['tables'];
@@ -175,10 +189,19 @@ if ($installPlugins == '*') {
 } else if ($installPlugins) {
     $chosenPlugins = array();
     foreach (explode(',', $installPlugins) as $pluginName) {
-        $plugin = Plugin::get(ucfirst(trim($pluginName)));
+        // Support Author.Plugin or Author\Plugin notation; default author is Acorn
+        $parts = preg_split('/[.\\\\]/', trim($pluginName), 2);
+        if (count($parts) === 2) {
+            $plugin = Plugin::get(ucfirst($parts[1]), ucfirst($parts[0]));
+        } else {
+            $plugin = Plugin::get(ucfirst(trim($pluginName)));
+        }
         if (!$plugin) throw new \Exception("Plugin [$pluginName] not found");
         array_push($chosenPlugins, $plugin);
     }
+} else if ($autoYes) {
+    // -y with no plugin name = process all
+    $chosenPlugins = &$plugins;
 } else {
     print("\n");
     print("{$YELLOW}CHOOSE{$NC}: No plugin name has been provided\n");

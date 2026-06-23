@@ -2112,12 +2112,12 @@ PHP
             // Inheritance
             $author = $controller->author();
             print("  Inheriting {$YELLOW}$controller->name{$NC} from $author\n");
-            $this->replaceInFile($controllerFilePath, '/^use Backend\\\\Classes\\\\Controller;$/m', "use $author\\\\Controller;");
+            $this->replaceInFile($controllerFilePath, '/^use Backend\\\\Classes\\\\Controller;$/m', "use Acorn\\\\Controller;");
 
             // Implements
             $implements = array(
-                "\\\\$author\\\\Behaviors\\\\FormController",
-                "\\\\$author\\\\Behaviors\\\\ListController",
+                "\\\\Acorn\\\\Behaviors\\\\FormController",
+                "\\\\Acorn\\\\Behaviors\\\\ListController",
                 "Backend\\\\Behaviors\\\\RelationController", // Only here to prevent RelationController requirement error
                 "\\\\Acorn\\\\Behaviors\\\\RelationController",
             );
