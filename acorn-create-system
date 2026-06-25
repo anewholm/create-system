@@ -169,19 +169,19 @@ file_put_contents('acorn_location_linked_address_view.sql',   ";\n\nGRANT ALL ON
 
 // Create
 echo "Running {$YELLOW}date_tables_view{$NC}.sql\n";
-$db->runSQLFile('date_tables_view.sql');
+$db->runSQLFile('date_tables_view.sql', [], TRUE);
 echo "Running {$YELLOW}name_tables_view{$NC}.sql\n";
-$db->runSQLFile('name_tables_view.sql');
+$db->runSQLFile('name_tables_view.sql', [], TRUE);
 echo "Running {$YELLOW}acorn_created_bys_view{$NC}.sql\n";
-$db->runSQLFile('acorn_created_bys_view.sql');
+$db->runSQLFile('acorn_created_bys_view.sql', [], TRUE);
 echo "Running {$YELLOW}acorn_calendar_linked_events_view{$NC}.sql\n";
-$db->runSQLFile('acorn_calendar_linked_events_view.sql');
+$db->runSQLFile('acorn_calendar_linked_events_view.sql', [], TRUE);
 echo "Running {$YELLOW}acorn_calendar_linked_calendars_view{$NC}.sql\n";
-$db->runSQLFile('acorn_calendar_linked_calendars_view.sql');
+$db->runSQLFile('acorn_calendar_linked_calendars_view.sql', [], TRUE);
 echo "Running {$YELLOW}acorn_location_linked_view{$NC}.sql\n";
-$db->runSQLFile('acorn_location_linked_view.sql');
+$db->runSQLFile('acorn_location_linked_view.sql', [], TRUE);
 echo "Running {$YELLOW}acorn_location_linked_address_view{$NC}.sql\n";
-$db->runSQLFile('acorn_location_linked_address_view.sql');
+$db->runSQLFile('acorn_location_linked_address_view.sql', [], TRUE);
 
 // ------------------------------------------- Choose which plugin to create()
 if ($installPlugins == '*') {

@@ -431,10 +431,12 @@ class Field {
         } else if ($column && $column->isForeignID()) {
             try {
                 $field = new ForeignIdField($model, $fieldDefinition, $column, $relations);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // No FK relation for this *_id column — render as plain text
                 global $YELLOW, $NC;
                 print("      {$YELLOW}Warning{$NC}: {$e->getMessage()} — rendered as plain field\n");
+                $yn = readline("      Make a plain field instead (y) ?");
+                if ($yn != 'y' && $yn != 'Y') exit(1);
                 $field = new Field($model, $fieldDefinition, $column);
             }
         } else {
@@ -563,7 +565,7 @@ class Field {
             $fieldDefinition[$nameCamel] = $value;
         }
 
-        // Chance for the relation destination Model to dictate field types
+        // Chance for the relatiobjectson destination Model to dictate field types
         // For example: FK to Acorn\Calendar\Models\Event
         // could suggest a datepicker type
         $fieldDefinitions = array($fieldDefinition);

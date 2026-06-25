@@ -608,11 +608,12 @@ class DB {
         $statement->bindParam(':column', $column->name);
         $statement->execute();
 
-        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        $fKsRows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($fKsRows as $row) {
             $fk   = ForeignKey::fromRow($column, $to, $row);
             $name = $fk->fullyQualifiedName();
             if (isset($results[$name]))
-                throw new \Exception("Foreign Key $name already exists");
+                throw new Exception("Foreign Key $name already exists");
             if ($fk->shouldProcess()) $results[$name] = $fk;
         }
 
@@ -759,7 +760,7 @@ SQL;
         // TODO: appendCommentValue
     }
 
-    public function runSQLFile(string $filePath, array $prepare = array())
+    public function runSQLFile(string $filePath, array $prepare = array(), bool $deleteAfter = FALSE)
     {
         $sql = file_get_contents($filePath);
         if (!$sql) throw new \Exception("SQL file [$filePath] is empty");
@@ -773,6 +774,7 @@ SQL;
                 $result    = $statement->execute();
             }
         }
+        if ($deleteAfter) unlink($filePath);
 
         return $result;
     }

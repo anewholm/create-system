@@ -63,9 +63,10 @@ class ForeignIdField extends Field {
             // This is a multiple relation: Xto1, XtoX, etc.
             // We only override the default text setting
             // because, for example, created_at_event_id wants to show a datepicker
+            // number is included for integer FKs
             // TODO: This morph to a dropdown needs to be rationalised a bit
             if (!isset($this->fieldType)
-                || in_array($this->fieldType, array('text', 'radio', 'dropdown'))
+                || in_array($this->fieldType, array('text', 'radio', 'dropdown', 'number'))
             ) {
                 // ----------------------- Columns.yaml ForeignIdField relation
                 // We try to use relation & sqlSelect because it can be column sorted and searched
@@ -74,7 +75,8 @@ class ForeignIdField extends Field {
                 // otherwise use [nested] valueFrom
                 if (!isset($this->relation)) $this->relation  = $this->column->relationName();
                 $relation1ToTable = $this->relation1->to->getTable();
-                if ($this->relation1 && $relation1ToTable->hasColumn('name') && !isset($this->sqlSelect)) {
+                if ($this->relation1 && $relation1ToTable->hasColumn('name')) {
+                    // Removed for number FKs: && !isset($this->sqlSelect)) {
                     // Sortable relation & select
                     $this->sqlSelect  = "$relation1ToTable->name.name";
                     $this->valueFrom  = NULL;
@@ -142,7 +144,7 @@ class ForeignIdField extends Field {
                 if (!isset($this->cssClasses)) $this->cssClasses = array('popup-col-xs-6');
                 if (!isset($this->bootstraps)) $this->bootstraps = array('xs' => 5);
                 if (!isset($this->readOnly))   $this->readOnly   = $this->relation1->to->readOnly;
-                if (!isset($this->fieldType) || $this->fieldType == 'text') $this->fieldType = 'dropdown';
+                if (!isset($this->fieldType) || $this->fieldType == 'text' || $this->fieldType == 'number') $this->fieldType = 'dropdown';
                 if ($this->relation1->isSelfReferencing()) $this->hierarchical = TRUE;
 
                 // ----------------------- Filter

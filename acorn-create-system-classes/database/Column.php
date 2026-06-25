@@ -423,6 +423,11 @@ class Column {
         return !$this->isNullable();
     }
 
+    public function isIdentity(): bool
+    {
+        return ($this->is_identity == 'YES');
+    }
+
     public function isRequired(): bool
     {
         return ($this->notNullable() && !$this->column_default);

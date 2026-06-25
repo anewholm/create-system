@@ -242,10 +242,15 @@ class Table {
             // ------------------------------------ Content tables
             if ($this->isContentTable()) {
                 // Not necessarily a UUID system
-                $hasID_UUID   = $this->hasColumn('id', 'uuid', 'gen_random_uuid()');
-                $hasID_int    = $this->hasColumn('id', 'integer');
-                $hasID_bigint = $this->hasColumn('id', 'bigint');
-                if (!$hasID_UUID && !$hasID_int && !$hasID_bigint) {
+                if ($this->hasColumn('id', 'uuid')) {
+                    if (!$this->hasColumn('id', 'uuid', 'gen_random_uuid()')) {
+                        throw new Exception("Content table [$this->name] has id(uuid) but no gen_random_uuid()) column");    
+                    }
+                } else if ($this->hasColumn('id', 'integer') || $this->hasColumn('id', 'bigint')) {
+                    if (!$this->hasColumn('id', NULL, NULL, TRUE)) {
+                        throw new Exception("Content table [$this->name] has id(int|bigint) column but is not identity");    
+                    }
+                } else {
                     throw new Exception("Content table [$this->name] has no id(int|bigint|uuid+gen_random_uuid()) column");
                 }
 
@@ -369,19 +374,18 @@ class Table {
                         $changes = TRUE;
                     }
                 }
-                if (Table::find('acorn_user_users')) {
-                    $triggerCheck = 'fn_acorn_created_by_user_id';
-                    if ($this->hasColumn($columnCheck) && !$this->hasTrigger($triggerCheck)) {
-                        $error = "Content table [$YELLOW$this->name$NC] has [$YELLOW$columnCheck$NC] column but no trigger [$YELLOW$triggerCheck$NC]";
-                        print("{$RED}WARNING$NC: $error\n");
-                        $yn = readline("Create [$triggerCheck] (y) ?");
-                        if ($yn != 'n') {
-                            $this->db->addTrigger($this->fullyQualifiedName(), $triggerCheck, 'BEFORE', array('INSERT'));
-                            print("Added [$triggerCheck]\n");
-                            $changes = TRUE;
-                        }
+                $triggerCheck = 'fn_acorn_created_by_user_id';
+                if ($this->hasColumn($columnCheck) && !$this->hasTrigger($triggerCheck)) {
+                    $error = "Content table [$YELLOW$this->name$NC] has [$YELLOW$columnCheck$NC] column but no trigger [$YELLOW$triggerCheck$NC]";
+                    print("{$RED}WARNING$NC: $error\n");
+                    $yn = readline("Create [$triggerCheck] (y) ?");
+                    if ($yn != 'n') {
+                        $this->db->addTrigger($this->fullyQualifiedName(), $triggerCheck, 'BEFORE', array('INSERT'));
+                        print("Added [$triggerCheck]\n");
+                        $changes = TRUE;
                     }
                 }
+
                 $columnCheck = 'created_by';
                 if ($this->hasColumn($columnCheck)) {
                     $error = "Content table [$YELLOW$this->name$NC] has a depreceated [$YELLOW$columnCheck$NC] column";
@@ -422,19 +426,18 @@ class Table {
                         $changes = TRUE;
                     }
                 }
-                if (Table::find('acorn_user_users')) {
-                    $triggerCheck = 'fn_acorn_updated_by_user_id';
-                    if ($this->hasColumn($columnCheck) && !$this->hasTrigger($triggerCheck)) {
-                        $error = "Content table [$YELLOW$this->name$NC] has [$YELLOW$columnCheck$NC] column but no trigger [$YELLOW$triggerCheck$NC]";
-                        print("{$RED}WARNING$NC: $error\n");
-                        $yn = readline("Create [$triggerCheck] (y) ?");
-                        if ($yn != 'n') {
-                            $this->db->addTrigger($this->fullyQualifiedName(), $triggerCheck, 'BEFORE', array('UPDATE'));
-                            print("Added [$triggerCheck]\n");
-                            $changes = TRUE;
-                        }
+                $triggerCheck = 'fn_acorn_updated_by_user_id';
+                if ($this->hasColumn($columnCheck) && !$this->hasTrigger($triggerCheck)) {
+                    $error = "Content table [$YELLOW$this->name$NC] has [$YELLOW$columnCheck$NC] column but no trigger [$YELLOW$triggerCheck$NC]";
+                    print("{$RED}WARNING$NC: $error\n");
+                    $yn = readline("Create [$triggerCheck] (y) ?");
+                    if ($yn != 'n') {
+                        $this->db->addTrigger($this->fullyQualifiedName(), $triggerCheck, 'BEFORE', array('UPDATE'));
+                        print("Added [$triggerCheck]\n");
+                        $changes = TRUE;
                     }
                 }
+
                 $columnCheck = 'updated_by';
                 if ($this->hasColumn($columnCheck)) {
                     $error = "Content table [$YELLOW$this->name$NC] has a depreceated [$YELLOW$columnCheck$NC] column";
@@ -869,15 +872,15 @@ SQL
         return (bool) $this->idColumn();
     }
 
-    public function hasColumn(string $name, string $type = NULL, string $default = NULL): bool
+    public function hasColumn(string $name, string $type = NULL, string $default = NULL, ?bool $isIdentity = NULL): bool
     {
         $has = FALSE;
         if (isset($this->columns[$name])) {
             $column    = $this->columns[$name];
             $firstType = explode(' ', $column->data_type)[0];
-            if (is_null($type) || $column->data_type == $type || $firstType == $type) {
-                $has = (is_null($default) || $column->column_default == $default);
-            }
+            $has = (is_null($type) || $column->data_type == $type || $firstType == $type);
+            if ($has) $has = (is_null($default) || $column->column_default == $default);
+            if ($has) $has = (is_null($isIdentity) || $column->isIdentity() == $isIdentity);
         }
         return $has;
     }
@@ -986,7 +989,7 @@ SQL
 
     public function hasUUIDs(): bool
     {
-        return $this->hasColumnOfType('uuid');
+        return $this->hasColumn('id', 'uuid');
     }
 
     public function hasSoftDelete(): bool
@@ -1322,7 +1325,7 @@ SQL
         // but the forms will respect the additional fields
         $schemaIs = (
                $this->db->nc->isSemiPivotTable($this) // Singular
-            && $this->hasColumn('id', 'uuid')
+            && $this->hasColumn('id')
         );
         $explicitIs  = ($this->tableType == 'semi-pivot');
         $explicitNot = ($this->tableType && !$explicitIs);
@@ -1335,7 +1338,7 @@ SQL
         // but they still have standard created_* information
         $schemaIs = (
                $this->db->nc->isPivotTable($this) // Singular
-            && !$this->hasColumn('id', 'uuid')
+            && !$this->hasColumn('id')
         );
         $explicitIs  = ($this->tableType == 'pivot');
         $explicitNot = ($this->tableType && !$explicitIs);

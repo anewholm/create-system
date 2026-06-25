@@ -392,12 +392,14 @@ class Framework
 
     public function pluginExists(Plugin|string &$plugin): bool
     {
+        // TODO: Allow strings
         // string: "Author.Plugin" => plugins/author/plugin/Plugin.php
         // Plugin => plugins/author/plugin/Plugin.php
-        return (is_string($plugin) 
-            ? is_file()
-            : is_file($this->pluginFile($plugin))
-        );
+        // return (is_string($plugin) 
+        //     ? is_file($plugin)
+        //     : is_file($this->pluginFile($plugin))
+        // );
+        return is_file($this->pluginFile($plugin));
     }
 
     protected function pluginHasGit(Plugin &$plugin): bool
