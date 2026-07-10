@@ -98,6 +98,13 @@ class Controller {
         print("$indentString$GREEN$this$NC\n");
     }
 
+    public function fullyQualifiedDotName():string
+    {
+        $pluginDirName = $this->model->plugin->dotName();
+        $dirName = $this->dirName();
+        return "$pluginDirName.$dirName";
+    }
+
     public function fullyQualifiedName(bool $withClassString = FALSE): string
     {
         $classString = ($withClassString ? '::class' : '');
@@ -108,5 +115,33 @@ class Controller {
     public function absoluteFullyQualifiedName(bool $withClassString = FALSE): string
     {
         return '\\' . $this->fullyQualifiedName($withClassString);
+    }
+
+    public function permissionFQN(string|array|NULL $qualifier = NULL): string
+    {
+        // acorn.university.student [_<qualifier>]
+        if (is_array($qualifier)) $qualifier = implode('_', $qualifier);
+
+        $permissionFQN = $this->fullyQualifiedDotName();
+        if ($qualifier) {
+            $qualifier = str_replace(['[', ']'], '_', $qualifier);
+            $permissionFQN .= ".$qualifier";
+        }
+        return $permissionFQN;
+    }
+
+    public function allPermissionNames(): array
+    {
+        $permissions = [];
+        $menuitemPlural = Str::plural(Str::title($this->name));
+
+        // Controller requiredPermissions: fifteen.commerce.companies.manage_all
+        $labelAction = 'Manage all ';
+        $permissions[$this->permissionFQN('manage_all')] = array(
+            'labels' => array('en' => "$labelAction $menuitemPlural"),
+            'localkey' => 2
+        );
+
+        return $permissions;
     }
 }

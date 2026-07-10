@@ -255,9 +255,10 @@ class WinterCMS extends Framework
             }
 
             foreach ($permissions as $fullyQualifiedName => &$config) {
+                $localKey                = $config['localkey'] ?? 1;
                 $permissionNameParts     = explode(".", $fullyQualifiedName);
                 $permissionPluginDotPath = implode(".", array_slice($permissionNameParts, 0, 2));
-                $permissionLocalName     = end($permissionNameParts);
+                $permissionLocalName     = implode(".", array_slice($permissionNameParts, -$localKey));
                 // We only register permissions for this plugin
                 // acorn.university...
                 if ($permissionPluginDotPath == $pluginDotName) {
@@ -276,9 +277,10 @@ class WinterCMS extends Framework
 
             // ---------------------------------------------------------------- Permissions lang.php
             foreach ($permissions as $fullyQualifiedName => &$config) {
+                $localKey                = $config['localkey'] ?? 1;
                 $permissionNameParts     = explode(".", $fullyQualifiedName);
                 $permissionPluginDotPath = implode(".", array_slice($permissionNameParts, 0, 2));
-                $permissionLocalName     = end($permissionNameParts);
+                $permissionLocalName     = implode(".", array_slice($permissionNameParts, -$localKey));
                 if ($permissionPluginDotPath == $pluginDotName) {
                     if (isset($config['plugin']['label']) && isset($config['labels'])) {
                         foreach ($config['labels'] as $lang => $label) {

@@ -271,6 +271,9 @@ class Plugin {
 
         foreach ($this->models as &$model) {
             $permissions = array_merge($permissions, $model->allPermissionNames());
+            if ($controller = $model->controller()) {
+                $permissions = array_merge($permissions, $controller->allPermissionNames());
+            }
         }
 
         // Check these permissions keys are fully qualified
