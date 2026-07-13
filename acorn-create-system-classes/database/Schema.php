@@ -15,6 +15,7 @@ class Schema {
     public $parsedComment; // array
     public $noRelationManagerDefault;
     public $canFilterDefault;
+    public $model; // All Models in this schema will inherit from this
 
     // ----------------------------------------- Construction
     public static function fromRow(DB &$db, array $row)
@@ -47,7 +48,7 @@ class Schema {
             if (!isset($this->$nameCamel)) $this->$nameCamel = $value;
         }
 
-        self::$schemas[$name] = $this;
+        self::$schemas[$this->name] = $this;
     }
 
     static protected function blockingAlert(string $message, string $level = 'WARNING'): void

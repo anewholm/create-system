@@ -138,6 +138,26 @@ class DB {
         return $schema;
     }
 
+    public function schemas(): array
+    {
+        $schemas   = [];
+        $statement = $this->connection->prepare("select sch.nspname as name, 
+            obj_description(sch.oid, 'pg_namespace') as comment
+            from pg_namespace sch
+			inner join pg_database db on db.datdba = sch.nspowner
+			where db.datname = :dbname
+        ");
+        $dbName = $this->dbDatabase();
+        $statement->bindParam(':dbname', $dbName);
+        $statement->execute();
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($results as $result) {
+            array_push($schemas, Schema::fromRow($this, $result));
+        }
+
+        return $schemas;
+    }
+
     public function contraintsForTable(string|Table $table): array
     {
         $constraints = array(
@@ -365,7 +385,7 @@ class DB {
         $statement->bindParam(':tableMatch',  $tableMatch);
         $statement->execute();
 
-        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
             // print("$row[schema].$row[name]\n");
             switch ($row['type']) {
                 case 'BASE TABLE':
@@ -376,7 +396,7 @@ class DB {
                     $object = View::fromRow($this, $row);
                     break;
                 default:
-                    throw new \Exception("Unknown object type [$row[type]]");
+                    throw new Exception("Unknown object type [$row[type]]");
             }
             if ($object->shouldProcess()) $results[$object->fullyQualifiedName()] = $object;
         }

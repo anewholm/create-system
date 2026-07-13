@@ -128,7 +128,7 @@ file_put_contents('acorn_location_linked_address_view.sql',
 // ------------------------------------------- Read DB
 $nc      = new AcornNamingConvention();
 $db      = new DB($nc, $framework); // TODO: Also db->comment => properties heye
-$schema  = $db->schema('public');
+$schemas = $db->schemas(); // Load all...
 do {
     $tables  = array_merge($db->tables(), $db->views(), $db->materializedViews());
     foreach ($tables as &$table) {

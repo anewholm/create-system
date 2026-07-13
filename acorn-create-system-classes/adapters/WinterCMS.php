@@ -855,6 +855,10 @@ PHP;
             print("Model: $model->name\n");
             $this->runWinterCommand('create:model', 2, $model->plugin->dotClassName(), $model->name);
 
+            $schema = $model->getTable()->getSchema();
+            if ($schema && $schema->model)
+                $this->setExtends($modelFilePath, $schema->model);
+
             // Potentially rewrite $table because create:model will automatically plural it
             $this->setPropertyInClassFile($modelFilePath, 'table', $model->getTable()->fullyQualifiedName());
             if (!is_null($model->order)) $this->setPropertyInClassFile($modelFilePath, 'order', $model->order, Framework::NEW_PROPERTY, 'public static');
@@ -2705,6 +2709,8 @@ PHP
     protected function getNextIcon(): string
     {
         $array    = $this->yamlFileLoad($this->iconFile, self::NO_CACHE);
+        $icons    = $array[0]['icons'];
+        if (!isset($icons[$this->iconCurrent])) $this->iconCurrent = 0;
         $fqn      = $array[0]['icons'][$this->iconCurrent++];
         $fqnParts = explode(' ', $fqn);
         return end($fqnParts);

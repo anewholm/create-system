@@ -833,7 +833,7 @@ class Field {
         $translationKey      = $this->translationKey($name);
         $translationKeyParts = explode('::', $translationKey);
         if (!isset($translationKeyParts[1]))
-            throw new Exception("Malformed translation key [$translationKey]");
+            throw new Exception("Malformed translation key [$translationKey] (should be a translation key: author.plugin::lang...)");
         $localTranslationKey = $translationKeyParts[1];
         return preg_replace('/^lang\./', '', $localTranslationKey);
     }

@@ -135,6 +135,11 @@ class Table {
         return self::$tables[$qualifiedName];
     }
 
+    public function getSchema(): Schema
+    {
+        return Schema::get($this->schema);
+    }
+
     public static function find(string $name, string $schema = NULL): Table|NULL
     {
         // Like get() but returns NULL instead of throwing when the table is absent.
@@ -1156,10 +1161,11 @@ SQL
         }
 
         // Checks
+        if (!$throughColumn)                           throw new Exception("Pivot table [$this->name] without a through column?");
         if ($firstOnly  && !$this->isSemiPivotTable()) throw new Exception("First only through column requested on non-semi-pivot table [$this->name] to [$otherColumn->name]");
         if (!$firstOnly && !$this->isPivotTable())     throw new Exception("Through column requested on non-pivot table [$this->name] to [$otherColumn->name]");
-        if ($throughColumn && !$throughColumn->isForeignID())          throw new Exception("Through column [$this->name.$throughColumn->name] is not a foreign ID column");
-        if ($throughColumn && !count($throughColumn->foreignKeysFrom)) throw new Exception("Through column [$this->name.$throughColumn->name] has no foreign keys from");
+        if (!$throughColumn->isForeignID())            throw new Exception("Through column [$this->name.$throughColumn->name] is not a foreign ID column");
+        if (!count($throughColumn->foreignKeysFrom))   throw new Exception("Through column [$this->name.$throughColumn->name] has no foreign keys from");
 
         return $throughColumn;
     }

@@ -79,6 +79,12 @@ FUNCTION
         );
     }
 
+    protected function setExtends(string $path, string $model): void
+    {
+        if ($model[0] != '\\') $model = "\\$model";
+        $this->replaceInFile($path, '/^class ([^ ]+) extends Model$/sm', "class $1 extends $model");
+    }
+
     protected function setPropertyInClassFile(string $path, string $name, string|int|array $value, bool $overwriteExisting = Framework::OVERWRITE_EXISTING, string $scope = 'public', int $indent = Framework::STD_INDENT, bool $passthrough = Framework::FIRST_MULTILINE)
     {
         if (!$path) throw new \Exception("FILES path is empty");
