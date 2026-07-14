@@ -274,7 +274,7 @@ class DB {
         ");
         $statement->bindParam(':like', $like);
         $statement->execute();
-        $results = $statement->fetchAll(\PDO::FETCH_OBJ);
+        $results = $statement->fetchAll(PDO::FETCH_OBJ);
 
         $functions = array();
         foreach ($results as &$result) {
@@ -329,7 +329,7 @@ class DB {
                 case 2278: $returnType = 'void'; break;
             }
             
-            // TODO: Function.php class
+            // TODO: DBFunction::fromRow($this, ...)
             $functions[$result->name] = array(
                 'oid'        => $result->oid,
                 'parameters' => $parameters,
@@ -350,7 +350,7 @@ class DB {
             WHERE  datname = :database");
         $statement->bindParam(':database', $this->database);
         $statement->execute();
-        $results = $statement->fetchAll(\PDO::FETCH_ASSOC);
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
         if (count($results)) $comment = $results[0]['comment'];
 
         return ($comment ?: '');
