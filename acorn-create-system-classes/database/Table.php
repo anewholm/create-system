@@ -104,6 +104,7 @@ class Table {
 
     public $filters = array();
     public $listRecordUrl;
+    public $listRecordOnClick;
     public $visibleColumnActions;
     public $noRelationManagerDefault;
     public $canFilterDefault;
@@ -241,8 +242,17 @@ class Table {
             if (!self::$generalOwner) {
                 self::$generalOwner = $this->owner;
                 print("Set general owner to [$YELLOW$this->owner$NC]\n");
-            } else if ($this->owner != self::$generalOwner)
-                throw new Exception("Table $this->name is owned by $this->owner, not " . self::$generalOwner);
+            } else if ($this->owner != self::$generalOwner) {
+                $generalOwner = self::$generalOwner;
+                $error = "Table $this->name is owned by $this->owner, not $generalOwner";
+                print("{$RED}WARNING$NC: $error\n");
+                $yn = readline("Set owner to [$generalOwner] (y) ?");
+                if ($yn != 'n') {
+                    $this->db->setOwner($this->fullyQualifiedName(), $generalOwner);
+                    print("Set owner to [$generalOwner]\n");
+                    $changes = TRUE;
+                }
+            }
 
             // ------------------------------------ Content tables
             if ($this->isContentTable()) {

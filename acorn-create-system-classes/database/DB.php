@@ -678,6 +678,12 @@ class DB {
     }
 
     // --------------------------------------- Actions
+    public function setOwner(string $table, string $owner): void
+    {
+        $sql     = "ALTER TABLE $table OWNER TO $owner;";
+        $reponse = $this->connection->query($sql);
+    }
+
     public function addColumn(string $table, string $column, string $type, string $gen = NULL, bool $nullable = Column::NOT_NULL, string $default = NULL)
     {
         global $YELLOW, $RED, $NC;

@@ -2149,6 +2149,9 @@ PHP
             if ($controller->model->listRecordUrl) {
                 $this->yamlFileSet($configListPath, 'recordUrl', $controller->model->listRecordUrl);
             }
+            if ($controller->model->listRecordOnClick) {
+                $this->yamlFileSet($configListPath, 'recordOnClick', $controller->model->listRecordOnClick);
+            }
             if ($controller->model->defaultSort) {
                 $this->yamlFileSet($configListPath, 'defaultSort', $controller->model->defaultSort);
             }

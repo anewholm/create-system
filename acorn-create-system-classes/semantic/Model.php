@@ -84,6 +84,8 @@ class Model {
 
     public $filters;
     public $listRecordUrl;
+    public $listRecordOnClick;
+
     public $globalScope; // Limits all related models to here by the selection
     public $globalScopeCssTheme; // CSS class applied to body when the global scope has a fixed value
     public $import;
