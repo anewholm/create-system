@@ -1643,7 +1643,8 @@ class Model {
                                         // WinterModel loaded probably
                                         // then it may be included in the nested fields +column below
                                         // unless it has a select: clause
-                                        $isSortable         = ($subFieldObj->sortable !== FALSE);
+                                        $isSortable         = ($subFieldObj->sortable   !== FALSE);
+                                        $isSearchable       = ($subFieldObj->searchable !== FALSE);
                                         $hasSqlClause       = (bool) $subFieldObj->sqlSelect;
 
                                         if (   !$isSpecialField
@@ -1652,7 +1653,7 @@ class Model {
                                             && !$isDuplicateField
                                             && !$isPseudoFieldName
                                             && !$hasSubRelation
-                                            && ($isSortable || $hasSqlClause)
+                                            && ($isSortable || $hasSqlClause || $isSearchable)
                                             // && !$isAlreadyNested
                                         ) {
                                             $subFieldObj->nested        = TRUE;
@@ -1668,7 +1669,10 @@ class Model {
                                             // We use relation: and the single <name>:
                                             // For 1-1 Models, also a name|valueFrom: nested[field][name]
                                             // using nameFromPath()
-                                            $subFieldObj->columnKey = $subFieldName;
+                                            // columnKey is not relevant when there is a select:
+                                            // name: will not work without some prepended qualifier
+                                            // so we use the relation name
+                                            $subFieldObj->columnKey = "{$relation1to1->name}_$subFieldName";
                                             $subFieldObj->relation  = $relation1to1->name;
                                             // Custom relation scopes based on relations, not SQL
                                             // Will set filter[relationCondition] = <the name of the relevant relation>, e.g. belongsTo['language']
@@ -1754,7 +1758,8 @@ class Model {
                                         // WinterModel loaded probably
                                         // then it may be included in the nested fields +column
                                         // unless it has a select: clause
-                                        $isSortable         = ($subFieldObj->sortable !== FALSE);
+                                        $isSortable         = ($subFieldObj->sortable   !== FALSE);
+                                        $isSearchable       = ($subFieldObj->searchable !== FALSE);
                                         $hasSqlClause       = (bool) $subFieldObj->sqlSelect;
 
                                         if (   !$isSpecialField
@@ -1774,12 +1779,13 @@ class Model {
                                             // because we prefer the sortable HasManyDeep version above
                                             // However, WinterModel may have specified no sorting,
                                             // for example on translations field
-                                            if (!$isSortable && !$hasSqlClause) {
+                                            if (!$isSortable && !$hasSqlClause && !$isSearchable) {
                                                 print("  {$indentString}Field $modelTo->name::$subFieldName column included because sortable:false and no select: clause\n");
                                                 // Nested column version
-                                                $subFieldObj->columnKey  = $fieldKey;
-                                                $subFieldObj->relation   = NULL;
+                                                $subFieldObj->columnKey = $fieldKey;
+                                                $subFieldObj->relation  = NULL;
                                             } else {
+                                                // This field is not relevant to this branch
                                                 $subFieldObj->columnType = FALSE;
                                                 $subFieldObj->columnKey  = FALSE;
                                             }

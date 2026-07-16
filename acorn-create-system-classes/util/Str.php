@@ -12,8 +12,9 @@ class Str
     protected static $singularExceptions = array(
         'gps' => 'gps',
         'job_batches' => 'job_batch',
-        // Fix offices => offix!
-        'offices'  => 'office', 
+        // Fix offices => offix!, prices => prix!
+        'offices'  => 'office',
+        'prices'   => 'price',
         // We use the academic option in order to differentiate
         'statuses' => 'status',
         'address'  => 'address',
@@ -116,13 +117,23 @@ class Str
 
     public static function singular(string $value): string
     {
-        if (isset(self::$singularExceptions[strtolower($value)])) {
-            $singulars = array(self::$singularExceptions[strtolower($value)]);
+        $lower = strtolower($value);
+        if (isset(self::$singularExceptions[$lower])) {
+            $singular = self::$singularExceptions[$lower];
         } else {
-            if (!self::$inflector) self::$inflector = new EnglishInflector();
-            $singulars = self::$inflector->singularize($value);
+            // Also check just the last underscore-delimited component (e.g. 'prices' in 'product_prices')
+            $parts    = explode('_', $lower);
+            $lastPart = end($parts);
+            if (isset(self::$singularExceptions[$lastPart])) {
+                $parts[\count($parts) - 1] = self::$singularExceptions[$lastPart];
+                $singular = implode('_', $parts);
+            } else {
+                if (!self::$inflector) self::$inflector = new EnglishInflector();
+                $singulars = self::$inflector->singularize($value);
+                $option    = (isset($singulars[1]) ? 1 : 0);
+                return static::matchCase($singulars[$option], $value);
+            }
         }
-        $option    = (isset($singulars[1]) ? 1 : 0);
-        return static::matchCase($singulars[$option], $value);
+        return static::matchCase($singular, $value);
     }
 }
