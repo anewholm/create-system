@@ -1174,7 +1174,7 @@ PHP
                 if (isset($relations[$name])) throw new Exception("Conflicting relations with [$name] on [$model->name]");
                 $relations[$name] = $this->removeEmpty(array(
                     $relation->to,
-                    'table'    => $relation->pivot->name,
+                    'table'    => $relation->pivot->fullyQualifiedName(),
                     'key'      => $relation->keyColumn->name,  // pivot.user_group_id
                     'otherKey' => $relation->column->name,     // pivot.user_id
                     'type'     => $relation->type(),
@@ -1190,11 +1190,11 @@ PHP
             foreach ($model->relationsXfromXSemi() as $name => &$relation) {
                 // This is a link to the primary through field
                 // For other through fields, the pivot model should be used, $hasMany[*_pivot], from above
-                if (isset($relations[$name])) 
+                if (isset($relations[$name]))
                     throw new Exception("Conflicting relations with [$name] on [$model->name]");
                 $relations[$name] = $this->removeEmpty(array(
                     $relation->to,
-                    'table'    => $relation->pivot->name,      // Semi-Pivot Model
+                    'table'    => $relation->pivot->fullyQualifiedName(),      // Semi-Pivot Model
                     'key'      => $relation->keyColumn->name,  // pivot.user_group_id
                     'otherKey' => $relation->column->name,     // pivot.user_id
                     'type'     => $relation->type(),

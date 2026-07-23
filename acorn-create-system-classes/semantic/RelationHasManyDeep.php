@@ -51,11 +51,13 @@ class RelationHasManyDeep extends Relation {
         $columnExclude      = FALSE;
         $repeatingModels    = FALSE;
         $hasManyDeepInclude = FALSE;
+        $invisible          = FALSE;
         $throughModels      = array();
         foreach ($throughRelations as &$throughRelation) {
             if ($throughRelation->fieldExclude       === TRUE) $fieldExclude  = TRUE;
             if ($throughRelation->columnExclude      === TRUE) $columnExclude = TRUE;
             if ($throughRelation->hasManyDeepInclude === TRUE) $hasManyDeepInclude = TRUE;
+            if ($throughRelation->invisible          === TRUE) $invisible = TRUE;
 
             // Repeating models
             $modeToName = $throughRelation->to->name;
@@ -82,6 +84,8 @@ class RelationHasManyDeep extends Relation {
         $this->repeatingModels    = $repeatingModels;
         $this->containsNon1to1s   = $containsNon1to1s;
         $this->hasManyDeepInclude = $hasManyDeepInclude;
+        // TODO: Maybe inherit all settings dynamically?
+        $this->invisible          = $invisible;
         // 1toX, XtoX, XtoXSemi
         if (!isset($this->fieldExclude))  $this->fieldExclude     = $fieldExclude;
         if (!isset($this->columnExclude)) $this->columnExclude    = $columnExclude;

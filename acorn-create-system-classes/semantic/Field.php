@@ -557,6 +557,14 @@ class Field {
                 break;
         }
 
+        switch ($column->name) {
+            case 'color':
+            case 'colour':
+                $fieldDefinition['fieldType']  = 'colorpicker';
+                // colorpicker also works in lists :)
+                break;
+        }
+
         // Inherit Column comment values
         // Include label translations
         $fieldDefinition['comment'] = $column->comment;
