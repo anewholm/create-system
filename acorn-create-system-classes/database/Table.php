@@ -29,7 +29,7 @@ class Table {
     protected static $tables = array();
 
     protected $db;
-    protected $ignoreYAMLs;
+    public $ignoreYAMLs;
 
     public $schema;
     public $name; // Un-qualified, see schema 

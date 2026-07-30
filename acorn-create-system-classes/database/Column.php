@@ -75,6 +75,7 @@ class Column {
     public $filters;
     public $noRelationManager;
     public $singularUniqueConstraint;
+    public $ignoreYAMLs;
 
     // --------------------- Database column settings
     // information_schema.columns.* SQL standard
@@ -260,6 +261,7 @@ class Column {
     protected function __construct(Table &$table, array $ignoreYAMLs, ...$properties)
     {
         $this->table = &$table;
+        $this->ignoreYAMLs = $ignoreYAMLs;
         foreach ($properties as $name => $value) {
             if (property_exists($this, $name)) $this->$name = $value;
         }

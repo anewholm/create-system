@@ -3,7 +3,7 @@
 class Str
 {
     protected static $inflector;
-
+    
     protected static $pluralExceptions = array(
         'gps' => 'gps',
         // We use the academic option in order to differentiate
@@ -43,19 +43,9 @@ class Str
         return $value;
     }
 
-    /**
-     * The cache of camel-cased words.
-     *
-     * @var array
-     */
     protected static $camelCache = [];
-
-    /**
-     * The cache of studly-cased words.
-     *
-     * @var array
-     */
     protected static $studlyCache = [];
+    protected static $snakeCache = [];
 
     /**
      * Convert a value to camel case.
@@ -135,5 +125,32 @@ class Str
             }
         }
         return static::matchCase($singular, $value);
+    }
+
+    public static function kebab($value)
+    {
+        return static::snake($value, '-');
+    }
+
+    public static function snake($value, $delimiter = '_')
+    {
+        $key = $value;
+
+        if (isset(static::$snakeCache[$key][$delimiter])) {
+            return static::$snakeCache[$key][$delimiter];
+        }
+
+        if (! ctype_lower($value)) {
+            $value = preg_replace('/\s+/u', '', ucwords($value));
+
+            $value = static::lower(preg_replace('/(.)(?=[A-Z])/u', '$1'.$delimiter, $value));
+        }
+
+        return static::$snakeCache[$key][$delimiter] = $value;
+    }
+
+    public static function lower($value)
+    {
+        return mb_strtolower($value, 'UTF-8');
     }
 }

@@ -44,6 +44,7 @@ class Model {
     public $showSorting;
     public $qrCodeScan;
     public $allControllers;
+    public $ignoreYAMLs;
     
     public $plugin;
     protected $table; // To mimick Winter Models. See getTable()
@@ -109,10 +110,12 @@ class Model {
         $this->plugin  = &$plugin;
         $this->table   = &$table;
         $this->name    = $table->modelName();
+        $this->ignoreYAMLs = ($table ? $table->ignoreYAMLs : []);
 
         // Adopt some of the tables comment statements
         $this->comment = $table->comment;
-        foreach (\Spyc::YAMLLoadString($this->comment) as $name => $value) {
+        foreach (Spyc::YAMLLoadString($this->comment) as $name => $value) {
+            if (in_array($name, $this->ignoreYAMLs)) continue;
             $nameCamel = Str::camel($name);
             if (property_exists($this, $nameCamel)) $this->$nameCamel = $value;
         }

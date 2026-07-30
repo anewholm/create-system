@@ -23,6 +23,7 @@ class Field {
     public $fromYaml;
     public $revisionable;
     public $deferrable;
+    public $ignoreYAMLs;
 
     public $comment;     // From column->comment
     public $name;        // => fieldName & columnName
@@ -194,20 +195,22 @@ class Field {
     protected function __construct(Model &$model, array $definition, Column $column = NULL, array $relations = array())
     {
         // TODO: Ambiguos fields problem: 2 x amount fields with relation
-        $this->oid       = $column?->oid;
-        $this->model     = &$model;
-        $this->column    = $column;
-        $this->relations = $relations;
+        $this->oid         = $column?->oid;
+        $this->model       = &$model;
+        $this->column      = $column;
+        $this->relations   = $relations;
+        $this->ignoreYAMLs = ($column ? $column->ignoreYAMLs : []);
 
         // Overwrite all defaults
-        foreach ($definition as $name => $value) {
-            if ($name == '#') $name = 'yamlComment';
-            if ($name == 'class-exists') $name = 'classExists';
-            if (!property_exists($this, $name)) {
+        foreach ($definition as $camelName => $value) {
+            if (in_array(Str::kebab($camelName), $this->ignoreYAMLs)) continue;
+            if ($camelName == '#') $camelName = 'yamlComment';
+            if ($camelName == 'class-exists') $camelName = 'classExists';
+            if (!property_exists($this, $camelName)) {
                 $value = (is_string($value) ? $value : '?');
-                throw new Exception("Property [$name] with value [$value] does not exist on Field");
+                throw new Exception("Property [$camelName] with value [$value] does not exist on Field");
             }
-            if (!is_null($value)) $this->$name = $value;
+            if (!is_null($value)) $this->$camelName = $value;
         }
 
         // Defaults
