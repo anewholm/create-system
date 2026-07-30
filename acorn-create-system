@@ -25,10 +25,13 @@ print("Usage: $file [options] [<plugin-name|all|lang.yaml> [<git-command (push|a
 print("Options:\n");
 print("  -y, --yes     Auto-confirm all interactive prompts\n");
 print("  --readme      Write README.md for each processed plugin\n");
+print("  -i, --ignore  COLUMN COMMENT YAML settings to ignore\n");
 
-$opts = getopt('y', ['yes', 'readme'], $restIndex);
-$autoYes     = isset($opts['y']) || isset($opts['yes']);
-$writeREADME = isset($opts['readme']);
+$opts = getopt('yi', ['yes', 'readme', 'ignore'], $restIndex);
+$autoYes        = isset($opts['y']) || isset($opts['yes']);
+$writeREADME    = isset($opts['readme']);
+$ignoreYAML     = $opts['i'] ?? $opts['ignore'] ?? NULL;
+$ignoreYAMLs    = ($ignoreYAML ? explode(',', $ignoreYAML) : []);
 
 $positional     = array_slice($argv, $restIndex);
 $installPlugins = $positional[0] ?? null;
@@ -39,6 +42,25 @@ if (!$writeREADME && ($positional[2] ?? 'n') === 'y') $writeREADME = true;
 
 // 'all' is an alias for '*'
 if ($installPlugins === 'all') $installPlugins = '*';
+
+// Load Laravel .env CS options
+// CREATESYSTEM_ignore=domain-data-id
+if ($laravelEnvContents = file_get_contents('.env')) {
+    $laravelOptions = array();
+    foreach (explode("\n", $laravelEnvContents) as $line) {
+        $nameValue = explode('=', $line);
+        $name      = $nameValue[0] ?? '';
+        $value     = $nameValue[1] ?? NULL;
+        if ($value && substr($name, 0, 13) == 'CREATESYSTEM_') {
+            $csName = preg_replace('/^CREATESYSTEM_|[ \'"]+$/', '', $name);
+            $laravelOptions[$csName] = preg_replace('/^[ \'"]+|[ \'"]+$/', '', $value);
+        }
+    }
+    if (isset($laravelOptions['ignore'])) {
+        print("Loaded laravel .env --ignore=$laravelOptions[ignore]\n");
+        $ignoreYAMLs = array_merge($ignoreYAMLs, explode(',', $laravelOptions['ignore']));
+    }
+}
 
 // ------------------------------------------- lang.yaml
 // TODO: lang.yaml import not finished
@@ -130,7 +152,7 @@ $nc      = new AcornNamingConvention();
 $db      = new DB($nc, $framework); // TODO: Also db->comment => properties heye
 $schemas = $db->schemas(); // Load all...
 do {
-    $tables  = array_merge($db->tables(), $db->views(), $db->materializedViews());
+    $tables  = array_merge($db->tables('%', '%', $ignoreYAMLs), $db->views(), $db->materializedViews());
     foreach ($tables as &$table) {
         $table->loadForeignKeys();
         $table->loadActionFunctions();

@@ -362,7 +362,7 @@ class DB {
         return $this->tables($tableMatch);
     }
 
-    public function tables(string $schemaMatch = '%', string $tableMatch = '%'): array
+    public function tables(string $schemaMatch = '%', string $tableMatch = '%', array $ignoreYAMLs = []): array
     {
         $results = array();
 
@@ -389,11 +389,11 @@ class DB {
             // print("$row[schema].$row[name]\n");
             switch ($row['type']) {
                 case 'BASE TABLE':
-                    $object = Table::fromRow($this, $row);
+                    $object = Table::fromRow($this, $row, $ignoreYAMLs);
                     break;
                 case 'VIEW':
                     // View inherits from Table
-                    $object = View::fromRow($this, $row);
+                    $object = View::fromRow($this, $row, $ignoreYAMLs);
                     break;
                 default:
                     throw new Exception("Unknown object type [$row[type]]");
@@ -524,7 +524,7 @@ class DB {
         return $resultsObjects;
     }
 
-    public function tableColumns(Table|View|string $table, bool $allColumns = FALSE): array
+    public function tableColumns(Table|View|string $table, bool $allColumns = FALSE, array $ignoreYAMLs = []): array
     {
         $results = array();
 
@@ -556,14 +556,14 @@ class DB {
         $statement->bindParam(':schema', $schema);
         $statement->bindParam(':table',  $name);
         $statement->execute();
-        $results = $statement->fetchAll(\PDO::FETCH_ASSOC);
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         $resultsObjects = array();
         foreach ($results as $row) {
             $shouldProcess = TRUE;
             if ($table instanceof Table || $table instanceof View) {
                 // Table object => Column objects
-                $column        = Column::fromRow($table, $row);
+                $column        = Column::fromRow($table, $row, $ignoreYAMLs);
                 $shouldProcess = ($column->shouldProcess() || $allColumns);
             } else {
                 // table string => (object) array
@@ -630,11 +630,13 @@ class DB {
 
         $fKsRows = $statement->fetchAll(PDO::FETCH_ASSOC);
         foreach ($fKsRows as $row) {
-            $fk   = ForeignKey::fromRow($column, $to, $row);
-            $name = $fk->fullyQualifiedName();
-            if (isset($results[$name]))
-                throw new Exception("Foreign Key $name already exists");
-            if ($fk->shouldProcess()) $results[$name] = $fk;
+            $fk = ForeignKey::fromRow($column, $to, $row);
+            if ($fk->shouldProcess()) {
+                $name = $fk->fullyQualifiedName();
+                if (isset($results[$name]))
+                    throw new Exception("Foreign Key $name already exists");
+                $results[$name] = $fk;
+            }
         }
 
         return $results;

@@ -81,6 +81,8 @@ class Model {
 
     public $labels;
     public $labelsPlural;
+    public $schemaEditable; // Allows the schema editor to use DDL
+    public $schemaDomainTable; // Allows the schema editor to access as lookup
 
     public $filters;
     public $listRecordUrl;

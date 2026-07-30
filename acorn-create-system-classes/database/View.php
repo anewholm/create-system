@@ -3,9 +3,9 @@
 class View extends Table {
     public $tableType = 'report'; // Read-only
 
-    public static function fromRow(DB &$db, array $row)
+    public static function fromRow(DB &$db, array $row, array $ignoreYAMLs = [])
     {
-        return new View($db, ...$row);
+        return new View($db, $ignoreYAMLs, ...$row);
     }
 
     public function check(): bool

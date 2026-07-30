@@ -29,6 +29,7 @@ class Table {
     protected static $tables = array();
 
     protected $db;
+    protected $ignoreYAMLs;
 
     public $schema;
     public $name; // Un-qualified, see schema 
@@ -54,6 +55,8 @@ class Table {
     // by: pivot column
     // 
     public $pivot; 
+    public $schemaEditable; // Allows the schema editor to use DDL
+    public $schemaDomainTable; // Allows the schema editor to access as lookup
 
 
     public $icon;
@@ -114,9 +117,9 @@ class Table {
     public $model;
 
     // ----------------------------------------- Construction
-    public static function fromRow(DB &$db, array $row)
+    public static function fromRow(DB &$db, array $row, array $ignoreYAMLs = [])
     {
-        return new Table($db, ...$row);
+        return new Table($db, $ignoreYAMLs, ...$row);
     }
 
     public static function &get(string $name, string $schema = NULL): Table
@@ -167,22 +170,24 @@ class Table {
             $schema     = (count($nameParts) == 2 ? $nameParts[0] : 'public');
         }
 
-        return new Table($db, array(
+        return new Table($db, [], array(
             'name'    => $name,
             'schema'  => $schema,
             'columns' => $columns
         ));
     }
 
-    protected function __construct(DB &$db, ...$properties)
+    protected function __construct(DB &$db, array $ignoreYAMLs, ...$properties)
     {
         $this->db = &$db;
+        $this->ignoreYAMLs = $ignoreYAMLs;
         foreach ($properties as $name => $value) {
             if (property_exists($this, $name)) $this->$name = $value;
         }
         $this->parsedComment = \Spyc::YAMLLoadString($this->comment);
         $previousName = NULL;
         foreach ($this->parsedComment as $name => $value) {
+            if (in_array($name, $ignoreYAMLs)) continue;
             $nameCamel = Str::camel($name);
             if (!property_exists($this, $nameCamel)) {
                 $valueExport = var_export($value, TRUE);
@@ -193,7 +198,7 @@ class Table {
         }
 
         if (!isset($this->columns)) 
-            $this->columns = $this->tableColumns(); // Will not return system columns
+            $this->columns = $this->tableColumns(FALSE, $ignoreYAMLs); // Will not return system columns
 
         // Name and registration
         $nameParts  = explode('.', $this->name);
@@ -212,9 +217,9 @@ class Table {
         if (strtolower($yn) == 'n') exit(0);
     }
 
-    public function tableColumns(bool $allColumns = FALSE): array
+    public function tableColumns(bool $allColumns = FALSE, array $ignoreYAMLs = []): array
     {
-        return $this->db->tableColumns($this, $allColumns);
+        return $this->db->tableColumns($this, $allColumns, $ignoreYAMLs);
     }
 
     public function check(): bool

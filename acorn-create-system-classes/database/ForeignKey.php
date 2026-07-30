@@ -207,6 +207,8 @@ class ForeignKey {
 
     public function fullyQualifiedName(bool $full = FALSE): string
     {
+        if (is_null($this->columnFrom))
+            throw new Exception("From Column does not exist on $this->name");
         $tableFromName  = $this->tableFrom->name;
         $columnFromName = $this->columnFrom->name;
         $tableToName    = $this->tableTo->name;

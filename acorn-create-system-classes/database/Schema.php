@@ -16,6 +16,7 @@ class Schema {
     public $noRelationManagerDefault;
     public $canFilterDefault;
     public $model; // All Models in this schema will inherit from this
+    public $schemaEditable; // Allows the schema editor to use DDL
 
     // ----------------------------------------- Construction
     public static function fromRow(DB &$db, array $row)

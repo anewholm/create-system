@@ -121,6 +121,7 @@ class Column {
     public $is_generated;
     public $generation_expression;
     public $is_updatable;
+    public $schemaEditable; // Allows the schema editor to use DDL
 
     // Aliases
     public $name; // = column_name
@@ -235,9 +236,9 @@ class Column {
 
     public $olap; // array|string, olap: measure for data
 
-    public static function fromRow(Table &$table, array $row): Column
+    public static function fromRow(Table &$table, array $row, array $ignoreYAMLs = []): Column
     {
-        return new self($table, ...$row);
+        return new self($table, $ignoreYAMLs, ...$row);
     }
 
     public static function dummy(Table &$table, string $column_name): Column
@@ -256,7 +257,7 @@ class Column {
         if (strtolower($yn) == 'n') exit(0);
     }
 
-    protected function __construct(Table &$table, ...$properties)
+    protected function __construct(Table &$table, array $ignoreYAMLs, ...$properties)
     {
         $this->table = &$table;
         foreach ($properties as $name => $value) {
@@ -278,6 +279,7 @@ class Column {
 
         $this->parsedComment = Spyc::YAMLLoadString($this->comment);
         foreach ($this->parsedComment as $name => $value) {
+            if (in_array($name, $ignoreYAMLs)) continue;
             $nameCamel = Str::camel($name);
             if (!property_exists($this, $nameCamel)) self::blockingAlert("Property [$nameCamel] does not exist on [$this->table.$this->name]");
             if (!isset($this->$nameCamel)) $this->$nameCamel = $value;

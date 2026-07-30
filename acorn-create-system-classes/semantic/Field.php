@@ -37,6 +37,7 @@ class Field {
     public $explicitLabelKey; // From YAML Models
     public $prefix; // Supported by _some_ partials
     public $suffix; // Supported by _some_ partials
+    public $schemaEditable; // Allows the schema editor to use DDL
 
     // fieldName & columnName
     // fields.yaml <name>: and columns.yaml <name>: can be different
