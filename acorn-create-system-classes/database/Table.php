@@ -987,7 +987,7 @@ SQL
 
     public function dateColumns(): array
     {
-        return $this->columnsOfType('timestamp');
+        return $this->columnsOfType('timestamp') + $this->columnsOfType('date');
     }
 
     public function columnsOfType(string $type): array

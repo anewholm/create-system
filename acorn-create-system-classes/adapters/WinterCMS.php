@@ -886,9 +886,20 @@ PHP;
 
             // ----------------------------------------------------------------- Behaviours, Uses, Classes & inheritance
             // TODO: SoftDelete
+
+            // Dates and timestamps
             $dateColumns = array_keys($model->getTable()->dateColumns());
             $this->setPropertyInClassFile($modelFilePath, 'dates', $dateColumns, TRUE, 'protected');
-            if (!count($dateColumns)) $this->setPropertyInClassFile($modelFilePath, 'timestamps', FALSE, FALSE);
+            if (isset($dateColumns['updated_at']) || isset($dateColumns['created_at'])) {
+                if (isset($dateColumns['created_at']) && isset($dateColumns['updated_at'])) {
+                    // All ok, leave $timestamps as TRUE (default)
+                } else {
+                    throw new Exception("$table->name: updated_at and created_at must be together");
+                }
+            } else {
+                // Remove the general timestamps system from this model
+                $this->setPropertyInClassFile($modelFilePath, 'timestamps', FALSE, FALSE);
+            }
 
             $model->uses = array_merge($model->uses, array(
                 // Useful AA classes
