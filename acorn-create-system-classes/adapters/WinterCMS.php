@@ -888,8 +888,8 @@ PHP;
             // TODO: SoftDelete
 
             // Dates and timestamps
-            $dateColumns = array_keys($model->getTable()->dateColumns());
-            $this->setPropertyInClassFile($modelFilePath, 'dates', $dateColumns, TRUE, 'protected');
+            $dateColumns = $model->getTable()->dateColumns(); // Keep keyed by column name -- the isset() checks below rely on it
+            $this->setPropertyInClassFile($modelFilePath, 'dates', array_keys($dateColumns), TRUE, 'protected');
             if (isset($dateColumns['updated_at']) || isset($dateColumns['created_at'])) {
                 if (isset($dateColumns['created_at']) && isset($dateColumns['updated_at'])) {
                     // All ok, leave $timestamps as TRUE (default)

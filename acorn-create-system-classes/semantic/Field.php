@@ -222,6 +222,9 @@ class Field {
                     $this->columnType = 'partial';
                     $this->columnPartial = ($this->name == 'description' ? 'description' : 'html');
                     break;
+                case 'dropdown':
+                    $this->columnType = 'text';
+                    break;
                 default:
                     $this->columnType = $this->fieldType;
             }
