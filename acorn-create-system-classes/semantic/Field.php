@@ -173,6 +173,8 @@ class Field {
     public $listEditable; // => partial list_editable
     public $on, $off;
     public $jsonable; // Column type json! :)
+    public $pgArray        = FALSE; // Native Postgres array column (int[], text[], etc.) -- not json/jsonb
+    public $pgArrayNumeric = FALSE; // True if the array's element type is numeric (int/float/numeric)
     public $qrcodeObject;
     // Set during __construct
     public $invisible; 
@@ -225,6 +227,9 @@ class Field {
                 case 'dropdown':
                     $this->columnType = 'text';
                     break;
+                case 'partial':
+                    if (!isset($this->columnPartial)) 
+                        $this->columnPartial = $this->partial;
                 default:
                     $this->columnType = $this->fieldType;
             }
@@ -489,7 +494,23 @@ class Field {
         $fieldDefinition['fieldType'] = 'text';
         switch ($column->data_type) {
             case 'json':
-                $fieldDefinition['jsonable'] = true;
+                $fieldDefinition['jsonable']      = true;
+                $fieldDefinition['fieldType']     = 'partial';
+                $fieldDefinition['partial']       = 'json';
+                break;
+            case 'ARRAY':
+                // Postgres reports every native array column (int[],
+                // text[], uuid[], etc.) as data_type='ARRAY' generically
+                // -- the actual element type is only in udt_name, prefixed
+                // with an underscore (e.g. _int4, _text). NOT the same as
+                // jsonable: a real integer[]/text[] column rejects
+                // json_encode()'d input ([1,2,3]) since Postgres expects
+                // its own array-literal syntax ({1,2,3}) -- these columns
+                // get a dedicated get/set accessor pair instead (see
+                // WinterCMS.php's pgArray handling).
+                $numericUdtNames = array('_int2', '_int4', '_int8', '_float4', '_float8', '_numeric', '_money');
+                $fieldDefinition['pgArray']        = true;
+                $fieldDefinition['pgArrayNumeric'] = in_array($column->udt_name, $numericUdtNames);
                 break;
             case 'double precision':
             case 'double':

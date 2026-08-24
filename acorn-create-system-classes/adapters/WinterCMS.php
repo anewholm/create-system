@@ -942,8 +942,8 @@ PHP;
                 print("    Adding Trait HasUuids\n");
                 $model->traits['\\Illuminate\\Database\\Eloquent\\Concerns\\HasUuids'] = TRUE;
             }
-            if ($model->hasSelfReferencingRelations()) 
-                $model->traits['\\Winter\\Storm\\Database\\Traits\\NestedTree'] = TRUE;
+            if ($model->hasSelfReferencingRelations())
+                $model->traits['\\Acorn\\Traits\\PagedNestedTree'] = TRUE;
             if ($model->hasField('sort_order'))
                  $model->traits['\\Winter\\Storm\\Database\\Traits\\Sortable'] = TRUE;
 
@@ -1363,6 +1363,33 @@ PHP
                 print("  Injecting public {$YELLOW}$signature{$NC}() into [$model->name]\n");
                 $this->addMethod($modelFilePath, $signature, $body, $type);
             }
+            // pgArray get/set accessor pairs -- native Postgres array
+            // columns (int[], text[], uuid[], etc., data_type='ARRAY')
+            // reject Eloquent's normal array-attribute save() ("Unexpected
+            // type of array... try $jsonable"), and $jsonable itself would
+            // json_encode() ([1,2,3]) which isn't valid input for a real
+            // array column (Postgres wants its own {1,2,3} literal syntax).
+            // parsePgArray()/formatPgArray() live once on the shared
+            // Acorn\Model base (every generated model already extends it)
+            // -- only the short per-column get/set pair is generated here.
+            foreach ($model->fields() as $name => &$field) {
+                if (!$field->pgArray) continue;
+
+                $namePascal = Str::studly($name);
+                $numericArg = ($field->pgArrayNumeric ? 'TRUE' : 'FALSE');
+
+                $getterBody = "\$parsed = \$this->parsePgArray(\$this->attributes['{$name}'] ?? NULL);";
+                $getterBody .= ($field->pgArrayNumeric
+                    ? "\nreturn array_map(fn(\$v) => \$v === NULL ? NULL : (int) \$v, \$parsed);"
+                    : "\nreturn \$parsed;"
+                );
+                $setterBody = "\$this->attributes['{$name}'] = \$this->formatPgArray(\$value, {$numericArg});";
+
+                print("  Injecting public {$YELLOW}get{$namePascal}Attribute(){$NC} / {$YELLOW}set{$namePascal}Attribute(){$NC} into [$model->name]\n");
+                $this->addMethod($modelFilePath, "get{$namePascal}Attribute()", $getterBody, 'array');
+                $this->addMethod($modelFilePath, "set{$namePascal}Attribute(\$value)", $setterBody, 'void');
+            }
+
             // methods()
             foreach ($model->methods as $funcName => &$body) {
                 $type = ($funcName == 'name' ? 'string' : 'mixed');
@@ -2151,7 +2178,7 @@ PHP
             $plural = $controller->model->getTable()->plural;
             if ($plural) $this->setPropertyInClassFile($controllerFilePath, 'namePlural', $plural, Framework::NEW_PROPERTY);
 
-            if ($controller->model->hasSelfReferencingRelations()) 
+            if ($controller->model->hasSelfReferencingRelations())
                 $this->yamlFileSet($configListPath, 'showTree', true);
             if ($controller->model->readOnly) {
                 $this->yamlFileSet($configListPath, 'showCheckboxes', false, Framework::NO_THROW);
