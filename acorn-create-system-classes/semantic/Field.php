@@ -494,6 +494,7 @@ class Field {
         $fieldDefinition['fieldType'] = 'text';
         switch ($column->data_type) {
             case 'json':
+            case 'jsonb':
                 $fieldDefinition['jsonable']      = true;
                 $fieldDefinition['fieldType']     = 'partial';
                 $fieldDefinition['partial']       = 'json';

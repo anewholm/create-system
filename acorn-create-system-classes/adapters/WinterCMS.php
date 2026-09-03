@@ -1373,21 +1373,21 @@ PHP
             // Acorn\Model base (every generated model already extends it)
             // -- only the short per-column get/set pair is generated here.
             foreach ($model->fields() as $name => &$field) {
-                if (!$field->pgArray) continue;
+                if ($field->pgArray && !$field->nested) {
+                    $namePascal = Str::studly($name);
+                    $numericArg = ($field->pgArrayNumeric ? 'TRUE' : 'FALSE');
 
-                $namePascal = Str::studly($name);
-                $numericArg = ($field->pgArrayNumeric ? 'TRUE' : 'FALSE');
+                    $getterBody = "\$parsed = \$this->parsePgArray(\$this->attributes['{$name}'] ?? NULL);";
+                    $getterBody .= ($field->pgArrayNumeric
+                        ? "\nreturn array_map(fn(\$v) => \$v === NULL ? NULL : (int) \$v, \$parsed);"
+                        : "\nreturn \$parsed;"
+                    );
+                    $setterBody = "\$this->attributes['{$name}'] = \$this->formatPgArray(\$value, {$numericArg});";
 
-                $getterBody = "\$parsed = \$this->parsePgArray(\$this->attributes['{$name}'] ?? NULL);";
-                $getterBody .= ($field->pgArrayNumeric
-                    ? "\nreturn array_map(fn(\$v) => \$v === NULL ? NULL : (int) \$v, \$parsed);"
-                    : "\nreturn \$parsed;"
-                );
-                $setterBody = "\$this->attributes['{$name}'] = \$this->formatPgArray(\$value, {$numericArg});";
-
-                print("  Injecting public {$YELLOW}get{$namePascal}Attribute(){$NC} / {$YELLOW}set{$namePascal}Attribute(){$NC} into [$model->name]\n");
-                $this->addMethod($modelFilePath, "get{$namePascal}Attribute()", $getterBody, 'array');
-                $this->addMethod($modelFilePath, "set{$namePascal}Attribute(\$value)", $setterBody, 'void');
+                    print("  Injecting public {$YELLOW}get{$namePascal}Attribute(){$NC} / {$YELLOW}set{$namePascal}Attribute(){$NC} into [$model->name]\n");
+                    $this->addMethod($modelFilePath, "get{$namePascal}Attribute()", $getterBody, 'array');
+                    $this->addMethod($modelFilePath, "set{$namePascal}Attribute(\$value)", $setterBody, 'void');
+                }
             }
 
             // methods()

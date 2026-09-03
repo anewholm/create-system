@@ -389,7 +389,11 @@ class Table {
                     print("{$RED}WARNING$NC: $error\n");
                     $yn = readline("Create [$columnCheck] FK (y) ?");
                     if ($yn != 'n') {
-                        $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'acorn_user_users');
+                        if (Table::find('acorn_user_users')) {
+                            $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'acorn_user_users');
+                        } else {
+                            $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'backend_users');
+                        }
                         print("Added [$columnCheck] FK\n");
                         $changes = TRUE;
                     }
@@ -441,7 +445,11 @@ class Table {
                     print("{$RED}WARNING$NC: $error\n");
                     $yn = readline("Create [$columnCheck] FK (y) ?");
                     if ($yn != 'n') {
-                        $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'acorn_user_users');
+                        if (Table::find('acorn_user_users')) {
+                            $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'acorn_user_users');
+                        } else {
+                            $this->db->addForeignKey($this->fullyQualifiedName(), $columnCheck, 'backend_users');
+                        }
                         print("Added [$columnCheck] FK\n");
                         $changes = TRUE;
                     }
