@@ -225,6 +225,14 @@ class Column {
     public $keyFrom;
 
     public $canFilter;
+    // The config_filter.yaml scope type: text|daterange|number|checkbox|group.
+    // Field declares it and WinterCMS::... reads $field->filterType straight
+    // in to the scope's `type`, but Column did not declare it -- so a
+    // `filter-type:` column comment tripped the unknown-property alert even
+    // though the value itself propagates fine (Field::createFromColumn()
+    // inherits raw comment keys directly, so it never needed Column to hold
+    // it). Declared here so the comment key is legal where it is written.
+    public $filterType;
     public $filterSearchNameSelect;
     public $filterConditions;
     

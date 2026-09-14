@@ -15,6 +15,7 @@ class Str
         // Fix offices => offix!, prices => prix!
         'offices'  => 'office',
         'prices'   => 'price',
+        'price'    => 'price',
         // We use the academic option in order to differentiate
         'statuses' => 'status',
         'address'  => 'address',

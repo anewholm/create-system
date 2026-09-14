@@ -1308,6 +1308,40 @@ PHP
             }
             $this->setPropertyInClassFile($modelFilePath, 'jsonable', $jsonable, TRUE, 'protected');
 
+            // ----------------------------------------------------------------- Hidden (serialisation)
+            // Driven by the SAME `invisible: true` DB COLUMN comment that
+            // already drives columns.yaml, so one annotation now governs both
+            // the backend list AND json_encode()/toArray(). Until this,
+            // `invisible` stopped at columns.yaml and an invisible column
+            // still serialised in full -- e.g. Relay json_encode()s a hasMany
+            // of ProductVolumePricing straight into a Shopify metafield, and
+            // every band carried its whole row (id, created_at,
+            // created_by_user_id, server_id ...) along with it.
+            //
+            // $hidden (blacklist), deliberately NOT $visible (whitelist): a
+            // non-empty $visible suppresses EVERYTHING unlisted, including
+            // relations and appended attributes -- and on a DomainData-backed
+            // model `name` is exactly such an attribute, so a generated
+            // $visible would hide the one field you most want kept.
+            //
+            // !$field->nested is load-bearing: nested fields are borrowed
+            // from a 1to1 RELATED model (Model.php's $subFieldObj->nested),
+            // so their ->column belongs to another table entirely. Without
+            // this guard a nested domain_data[name] would contribute the bare
+            // column `name` and hide THIS model's own name.
+            //
+            // Keyed on the COLUMN name, not the Field name: ForeignIdField
+            // renames itself via nameWithoutId() (product_id => product) but
+            // the attribute that actually serialises is still the column.
+            // array_unique() because createFromColumn() can return several
+            // Fields for one column (e.g. an event_id => start/end pair).
+            $hidden = array();
+            foreach ($model->fields() as $name => &$field) {
+                if ($field->invisible && !$field->nested)
+                    array_push($hidden, ($field->column ? $field->column->name : $name));
+            }
+            $this->setPropertyInClassFile($modelFilePath, 'hidden', array_values(array_unique($hidden)), TRUE, 'protected');
+
             // ----------------------------------------------------------------- Translatable
             $translatable = array();
             foreach ($model->fields() as $name => &$field) {
@@ -2312,9 +2346,8 @@ PHP
                     } else {
                         // !relations
                         // Non-relation fields, like dates
-                        // Nothing comes here at the moment
-                        // because everything is a foreign key: dates, users, etc.
                         // throw new Exception("Un-considered filter [$fieldClass($fieldName)]");
+                        $filterDefinition = $this->removeEmpty($filterDefinition, TRUE);
                         $this->yamlFileSet($configFilterPath, "scopes.$fieldName", $filterDefinition);
                     }
                 } else { 
