@@ -230,6 +230,16 @@ class Table {
         // indicating that the DB schema should be re-read
         $changes = FALSE;
 
+        // TODO: Need to run this to check all objects...
+        /*
+        SELECT nm.nspname, pg_get_userbyid(relowner) AS owner, * 
+            FROM pg_class c
+            inner join pg_namespace nm on c.relnamespace = nm.oid
+            where not pg_get_userbyid(relowner) = 'relay'
+            and not nm.nspname = 'information_schema'
+            and not substr(nm.nspname, 1, 3) = 'pg_';
+        */
+
         // Checks & auto-creates
         // We omit some of our own known plugins
         // because they do not conform yet to our naming requirements

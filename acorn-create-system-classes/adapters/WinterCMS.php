@@ -1167,13 +1167,12 @@ PHP
                 $relations[$name] = $this->removeEmpty(array(
                     $relation->pivotModel,
                     'key'      => $relation->keyColumn->name,  // pivot.user_group_id
-                    'otherKey' => $relation->column->name,     // pivot.user_id
                     'global_scope' => ($relation->globalScope === 'from'),
                     'eager_load' => $relation->eagerLoad,
                     'type'     => $relation->type(),
                     'count'    => $relation->isCount,
-                    'order'  => $relation->defaultSortString(),
-                    'flags'  => $relation->flags,
+                    'order'    => $relation->defaultSortString(),
+                    'flags'    => $relation->flags,
                     'conditions' => $relation->conditions
                 ), Framework::AND_FALSES);
             }
@@ -1193,8 +1192,8 @@ PHP
                     'eager_load' => $relation->eagerLoad,
                     'delete'   => $relation->delete,
                     'count'    => $relation->isCount,
-                    'order'  => $relation->defaultSortString(),
-                    'flags'  => $relation->flags,
+                    'order'    => $relation->defaultSortString(),
+                    'flags'    => $relation->flags,
                     'conditions' => $relation->conditions
                 ), Framework::AND_FALSES);
             }
