@@ -230,16 +230,6 @@ class Table {
         // indicating that the DB schema should be re-read
         $changes = FALSE;
 
-        // TODO: Need to run this to check all objects...
-        /*
-        SELECT nm.nspname, pg_get_userbyid(relowner) AS owner, * 
-            FROM pg_class c
-            inner join pg_namespace nm on c.relnamespace = nm.oid
-            where not pg_get_userbyid(relowner) = 'relay'
-            and not nm.nspname = 'information_schema'
-            and not substr(nm.nspname, 1, 3) = 'pg_';
-        */
-
         // Checks & auto-creates
         // We omit some of our own known plugins
         // because they do not conform yet to our naming requirements
@@ -256,7 +246,21 @@ class Table {
             // We don't really know the ideal owner, so we just check it is consistent
             if (!self::$generalOwner) {
                 self::$generalOwner = $this->owner;
-                print("Set general owner to [$YELLOW$this->owner$NC]\n");
+                $generalOwner = self::$generalOwner;
+                print("Set general owner to [$YELLOW$generalOwner$NC]\n");
+    
+                // General DB ownership and re-assignment check 
+                if ($dbObjects = $this->db->checkOwnerShip($generalOwner)) {
+                    foreach ($dbObjects as $name => $owner) {
+                        print("{$RED}ERROR$NC: $name owned by $owner\n");
+                        $yn = readline("Set owner to [$generalOwner] (y) ?");
+                        if ($yn != 'n') {
+                            $this->db->reassignOwner($name, $generalOwner);
+                            print("Reassigned $name to [$generalOwner]\n");
+                            $changes = TRUE;
+                        }
+                    }
+                }
             } else if ($this->owner != self::$generalOwner) {
                 $generalOwner = self::$generalOwner;
                 $error = "Table $this->name is owned by $this->owner, not $generalOwner";

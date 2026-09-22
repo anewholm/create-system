@@ -21,12 +21,12 @@ class DB {
         $this->nc         = &$nc;
         $this->framework  = &$framework;
         $this->database   = &$framework->database;
-        $this->connection = new PDO($framework->connection, $framework->username, $framework->password, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+        $this->connection = new PDO($framework->connection, $framework->username, $framework->password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
         $this->comment    = $this->databaseComment();
         foreach (Spyc::YAMLLoadString($this->comment) as $name => $value) {
             $nameCamel = Str::camel($name);
-            if (!property_exists($this, $nameCamel)) throw new \Exception("Property [$nameCamel] does not exist on [$this->database]");
+            if (!property_exists($this, $nameCamel)) throw new Exception("Property [$nameCamel] does not exist on [$this->database]");
             if (!isset($this->$nameCamel)) $this->$nameCamel = $value;
         }
 
@@ -196,7 +196,7 @@ class DB {
 
         // There could be multiple rows for the _same_ contraint
         // in the case where it references many columns in conkey
-        $results     = $statement->fetchAll(\PDO::FETCH_OBJ);
+        $results     = $statement->fetchAll(PDO::FETCH_OBJ);
         foreach ($results as &$result) {
             $columns = ($result->columns == '{}'
                 ? array()
@@ -423,7 +423,7 @@ class DB {
         $statement->bindParam(':schemaMatch', $schemaMatch);
         $statement->bindParam(':tableMatch',  $tableMatch);
         $statement->execute();
-        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $view = View::fromRow($this, $row);
             if ($view->shouldProcess()) $results[$view->fullyQualifiedName()] = $view;
         }
@@ -450,7 +450,7 @@ class DB {
         $statement->bindParam(':schemaMatch', $schemaMatch);
         $statement->bindParam(':tableMatch',  $tableMatch);
         $statement->execute();
-        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $view = MaterializedView::fromRow($this, $row);
             if ($view->shouldProcess()) {
                 if (preg_match('/_olapcube/', $view->name)) $view->isOlap = true;
@@ -504,7 +504,7 @@ class DB {
         $statement->bindParam(':schema', $schema);
         $statement->bindParam(':table',  $name);
         $statement->execute();
-        $results = $statement->fetchAll(\PDO::FETCH_ASSOC);
+        $results = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         $resultsObjects = array();
         foreach ($results as $row) {
@@ -671,7 +671,7 @@ class DB {
         if ($type) $statement->bindParam(':type',   $type);
         $statement->execute();
 
-        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $tr = Trigger::fromRow($table, $row);
             $results[$tr->fullyQualifiedName()] = $tr;
         }
@@ -693,7 +693,7 @@ class DB {
         if (!$nullable && is_null($default)) {
             $sql     = "select count(*) from $table;";
             $reponse = $this->connection->query($sql);
-            $results = $reponse->fetchAll(\PDO::FETCH_OBJ);
+            $results = $reponse->fetchAll(PDO::FETCH_OBJ);
             if ($results[0]->count) {
                 print("{$RED}ERROR$NC: $table has rows, so adding a NOT NULL column will fail\n");
                 $yn = readline("Truncate cascade [$table] (y) ?");
@@ -730,7 +730,7 @@ SQL;
         $statement->bindParam(':event_name',    $eventName);
         $statement->execute();
 
-        $results   = $statement->fetchAll(\PDO::FETCH_OBJ);
+        $results   = $statement->fetchAll(PDO::FETCH_OBJ);
         $eventId   = $results[0]->event_id;
 
         return $eventId;
@@ -780,6 +780,37 @@ SQL;
         $statement->execute();
     }
 
+    public function checkOwnerShip(string $correctUser): array
+    {
+        $sql = "SELECT nm.nspname as obj_name, 
+                pg_get_userbyid(relowner) AS owner
+            FROM pg_class c
+            inner join pg_namespace nm on c.relnamespace = nm.oid
+            where not pg_get_userbyid(relowner) = :correct_user
+            and not nm.nspname = 'information_schema'
+            and not substr(nm.nspname, 1, 3) = 'pg_';";
+        $statement = $this->connection->prepare($sql);
+        $statement->bindParam(':correct_user', $correctUser);
+        $statement->execute();
+        $results   = $statement->fetchAll(PDO::FETCH_OBJ);
+
+        $dbObjects = [];
+        foreach ($results as $result) {
+            $dbObjects[$result->name] = $result->owner;
+        }
+
+        return $dbObjects;
+    }
+
+    public function reassignOwner(string $from, string $to): void
+    {
+        $sql = "REASSIGN OWNED BY :from TO :to;";
+        $statement = $this->connection->prepare($sql);
+        $statement->bindParam(':from', $from);
+        $statement->bindParam(':to',   $to);
+        $statement->execute();
+    }
+
     public function setCommentValue(string $table, string $column, string $dotPath, mixed $value) {
         // TODO: setCommentValue
     }
@@ -791,7 +822,7 @@ SQL;
     public function runSQLFile(string $filePath, array $prepare = array(), bool $deleteAfter = FALSE)
     {
         $sql = file_get_contents($filePath);
-        if (!$sql) throw new \Exception("SQL file [$filePath] is empty");
+        if (!$sql) throw new Exception("SQL file [$filePath] is empty");
 
         foreach (explode(';', $sql) as $sqlCommand) {
             $sqlCommand = trim($sqlCommand);
