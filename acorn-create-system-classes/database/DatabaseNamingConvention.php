@@ -20,5 +20,11 @@ class DatabaseNamingConvention {
         // A pivot table with an ID field and other content columns
         return $this->isPivotTable($table);
     }
+
+    public function isTemplate(Table &$table): bool
+    {
+        // *_template
+        return preg_match('/_template$/', $table->name);
+    }
 }
 

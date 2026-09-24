@@ -250,13 +250,14 @@ class Table {
                 print("Set general owner to [$YELLOW$generalOwner$NC]\n");
     
                 // General DB ownership and re-assignment check 
-                if ($dbObjects = $this->db->checkOwnerShip($generalOwner)) {
-                    foreach ($dbObjects as $name => $owner) {
-                        print("{$RED}ERROR$NC: $name owned by $owner\n");
+                if ($dbObjects = $this->db->getOwnerShip($generalOwner)) {
+                    foreach ($dbObjects as $owner => $objects) {
+                        $objectString = implode(', ', $objects);
+                        print("{$RED}ERROR$NC: $objectString owned by $owner\n");
                         $yn = readline("Set owner to [$generalOwner] (y) ?");
                         if ($yn != 'n') {
-                            $this->db->reassignOwner($name, $generalOwner);
-                            print("Reassigned $name to [$generalOwner]\n");
+                            $this->db->reassignOwner($owner, $generalOwner);
+                            print("Reassigned $owner to [$generalOwner]\n");
                             $changes = TRUE;
                         }
                     }
@@ -758,7 +759,7 @@ SQL
 
     public function shouldProcess(): bool
     {
-        return (!$this->system && !$this->todo);
+        return (!$this->system && !$this->todo && !$this->isTemplate());
     }
 
     public function loadForeignKeys(bool $addReverse = NULL)
@@ -1386,6 +1387,11 @@ SQL
         $explicitIs  = ($this->tableType == 'pivot');
         $explicitNot = ($this->tableType && !$explicitIs);
         return (!$explicitNot && ($schemaIs || $explicitIs));
+    }
+
+    public function isTemplate(): bool
+    {
+        return $this->db->nc->isTemplate($this);
     }
 
     public function isReportTable(): bool

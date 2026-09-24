@@ -780,34 +780,35 @@ SQL;
         $statement->execute();
     }
 
-    public function checkOwnerShip(string $correctUser): array
+    public function getOwnerShip(string $ignoreUser = NULL): array
     {
-        $sql = "SELECT nm.nspname as obj_name, 
+        $sql = "SELECT nm.nspname as schema_name, 
+                c.relname as object_name, 
                 pg_get_userbyid(relowner) AS owner
             FROM pg_class c
             inner join pg_namespace nm on c.relnamespace = nm.oid
-            where not pg_get_userbyid(relowner) = :correct_user
-            and not nm.nspname = 'information_schema'
-            and not substr(nm.nspname, 1, 3) = 'pg_';";
+            where not nm.nspname = 'information_schema'
+            and   not substr(nm.nspname, 1, 3) = 'pg_'";
+        if ($ignoreUser) $sql .= ' and not pg_get_userbyid(relowner) = :ignore_user';
         $statement = $this->connection->prepare($sql);
-        $statement->bindParam(':correct_user', $correctUser);
+        if ($ignoreUser) $statement->bindParam(':ignore_user', $ignoreUser);
         $statement->execute();
-        $results   = $statement->fetchAll(PDO::FETCH_OBJ);
+        $results = $statement->fetchAll(PDO::FETCH_OBJ);
 
-        $dbObjects = [];
+        // Organise owner => [db objects, ...]
+        $ownerDbObjects = [];        
         foreach ($results as $result) {
-            $dbObjects[$result->name] = $result->owner;
+            if (!isset($ownerDbObjects[$result->owner])) $ownerDbObjects[$result->owner] = [];
+            array_push($ownerDbObjects[$result->owner], "$result->schema_name.$result->object_name");
         }
 
-        return $dbObjects;
+        return $ownerDbObjects;
     }
 
     public function reassignOwner(string $from, string $to): void
     {
-        $sql = "REASSIGN OWNED BY :from TO :to;";
+        $sql = "REASSIGN OWNED BY $from TO $to;";
         $statement = $this->connection->prepare($sql);
-        $statement->bindParam(':from', $from);
-        $statement->bindParam(':to',   $to);
         $statement->execute();
     }
 

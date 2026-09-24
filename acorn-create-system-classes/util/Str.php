@@ -11,7 +11,12 @@ class Str
     );
     protected static $singularExceptions = array(
         'gps' => 'gps',
-        'job_batches' => 'job_batch',
+        // -ches cannot be settled by suffix: watches => watch but
+        // niches => niche. The inflector defaults to the -e reading, so the
+        // ones that drop it have to be listed. (This also covers
+        // job_batches via the last-component lookup below.)
+        'batches'  => 'batch',
+        'watches'  => 'watch',
         // Fix offices => offix!, prices => prix!
         'offices'  => 'office',
         'prices'   => 'price',
@@ -121,7 +126,26 @@ class Str
             } else {
                 if (!self::$inflector) self::$inflector = new EnglishInflector();
                 $singulars = self::$inflector->singularize($value);
-                $option    = (isset($singulars[1]) ? 1 : 0);
+                // The inflector offers every reading it cannot choose between,
+                // shortest first. We normally want the LAST one, because the
+                // ambiguity is nearly always a stem that keeps a trailing e:
+                // types => [typ, type], sizes => [siz, size].
+                //
+                // -shes is the exception, and it is an unconditional one. The
+                // es there is the whole suffix, added after the sibilant sh,
+                // so the shorter reading is always the right one:
+                // finishes => [finish, finishe], washes => [wash, washe].
+                // No English noun stem ends in -she, so there is no counter-
+                // example to weigh: we can simply take the first.
+                //
+                // NOT extended to -ches, which is genuinely ambiguous and
+                // cannot be settled by the suffix alone -- watches => watch
+                // but niches => niche. Those stay a matter for
+                // $singularExceptions at the top of the class.
+                // -sses and -xes need no help: the inflector already returns a
+                // single reading for classes, addresses, boxes.
+                $option = (isset($singulars[1]) ? 1 : 0);
+                if (substr($lower, -4) === 'shes') $option = 0;
                 return static::matchCase($singulars[$option], $value);
             }
         }
