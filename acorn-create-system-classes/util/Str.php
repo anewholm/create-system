@@ -148,6 +148,25 @@ class Str
                 $parts[\count($parts) - 1] = self::$singularExceptions[$lastPart];
                 $singular = implode('_', $parts);
             } else {
+                // -ives is the inflector's worst case, and the only one it
+                // gets wrong while offering just ONE reading -- so no choice
+                // of $option below can rescue it. It applies the knife => knives
+                // rule to every -ives word:
+                //   olives => olife, adhesives => adhesife, archives => archife
+                // Only three English nouns really take -ife, so the rule runs
+                // the other way: -ives is an -ive stem unless it is one of
+                // those three. That matters here because -ive nouns are open
+                // and ordinary (adhesives, abrasives, archives, additives),
+                // whereas $ifeStems is closed and will not grow.
+                //
+                // Matched on the LAST underscore component, not a suffix:
+                // "olives" ends with "lives".
+                if (substr($lower, -4) === 'ives'
+                    && !\in_array($lastPart, self::$ifeStems, TRUE)
+                ) {
+                    return static::matchCase(substr($value, 0, -1), $value);
+                }
+
                 if (!self::$inflector) self::$inflector = new EnglishInflector();
                 $singulars = self::$inflector->singularize($value);
                 // The inflector offers every reading it cannot choose between,
