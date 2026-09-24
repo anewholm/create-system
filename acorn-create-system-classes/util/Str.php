@@ -7,7 +7,26 @@ class Str
     protected static $pluralExceptions = array(
         'gps' => 'gps',
         // We use the academic option in order to differentiate
-        'status' => 'statuses', 
+        'status' => 'statuses',
+        // The mirror of the -ves block in $singularExceptions below. Without
+        // these, singular() and plural() disagree and the round-trip breaks:
+        // shelves -> shelf -> shelfs. Not a rule, because most -f nouns do NOT
+        // take -ves (roofs, chiefs, beliefs, proofs, cliffs, gulfs) -- so the
+        // two lists are kept deliberately identical, member for member.
+        'leaf'   => 'leaves',
+        'shelf'  => 'shelves',
+        'wolf'   => 'wolves',
+        'calf'   => 'calves',
+        'half'   => 'halves',
+        'loaf'   => 'loaves',
+        'thief'  => 'thieves',
+        'self'   => 'selves',
+        'elf'    => 'elves',
+        'scarf'  => 'scarves',
+        'wharf'  => 'wharves',
+        'hoof'   => 'hooves',
+        'dwarf'  => 'dwarves',
+        'sheaf'  => 'sheaves',
     );
     protected static $singularExceptions = array(
         'gps' => 'gps',
@@ -47,7 +66,8 @@ class Str
     );
 
     // The only English nouns whose -ives plural really comes from -ife.
-    // Everything else ending -ives is an -ive stem: see IVES_RE below.
+    // Everything else ending -ives is an -ive stem -- see the -ives branch in
+    // singular(), which is where this is used.
     protected static $ifeStems = array('knives', 'lives', 'wives');
 
     // Copied and commented from Laravel
@@ -126,11 +146,23 @@ class Str
 
     public static function plural(string $value, $count = 2): string
     {
-        if (isset(self::$pluralExceptions[strtolower($value)])) {
-            $plurals = array(self::$pluralExceptions[strtolower($value)]);
+        $lower = strtolower($value);
+        if (isset(self::$pluralExceptions[$lower])) {
+            $plurals = array(self::$pluralExceptions[$lower]);
         } else {
-            if (!self::$inflector) self::$inflector = new EnglishInflector();
-            $plurals = self::$inflector->pluralize($value);
+            // Same last-underscore-component lookup singular() already does,
+            // so an exception covers pa_shelf as well as shelf. Without it the
+            // two directions disagree on every compound name and
+            // plural(singular(pa_shelves)) returns pa_shelfs.
+            $parts    = explode('_', $lower);
+            $lastPart = end($parts);
+            if (\count($parts) > 1 && isset(self::$pluralExceptions[$lastPart])) {
+                $parts[\count($parts) - 1] = self::$pluralExceptions[$lastPart];
+                $plurals = array(implode('_', $parts));
+            } else {
+                if (!self::$inflector) self::$inflector = new EnglishInflector();
+                $plurals = self::$inflector->pluralize($value);
+            }
         }
         return static::matchCase($plurals[0], $value);
     }
