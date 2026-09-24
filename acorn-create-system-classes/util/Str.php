@@ -24,7 +24,31 @@ class Str
         // We use the academic option in order to differentiate
         'statuses' => 'status',
         'address'  => 'address',
+        // -ves where the stem is f, not ve. The inflector offers all three
+        // readings (leaves => [leaf, leave, leaff]) and we take the middle one,
+        // which is right for glove/sleeve/valve/curve and wrong for these.
+        // A closed list, so listing it is the whole fix.
+        'leaves'   => 'leaf',
+        'shelves'  => 'shelf',
+        'wolves'   => 'wolf',
+        'calves'   => 'calf',
+        'halves'   => 'half',
+        'loaves'   => 'loaf',
+        'thieves'  => 'thief',
+        'selves'   => 'self',
+        'elves'    => 'elf',
+        'scarves'  => 'scarf',
+        'wharves'  => 'wharf',
+        'hooves'   => 'hoof',
+        'dwarves'  => 'dwarf',
+        'sheaves'  => 'sheaf',
+        // NOT 'staves': it is the plural of both stave and staff, and nothing
+        // here can tell them apart. Left to the default rather than guessed.
     );
+
+    // The only English nouns whose -ives plural really comes from -ife.
+    // Everything else ending -ives is an -ive stem: see IVES_RE below.
+    protected static $ifeStems = array('knives', 'lives', 'wives');
 
     // Copied and commented from Laravel
     // ~/vendor/laravel/framework/src/Illuminate/Support/Str.php
