@@ -953,6 +953,7 @@ PHP;
             // Relax guarding
             // TODO: SECURITY: Relaxed guarding is ok?
             $this->setPropertyInClassFile($modelFilePath, 'guarded', array(), TRUE, 'protected');
+            if ($model->insertAdoptOnly) $this->setPropertyInClassFile($modelFilePath, 'insertAdoptOnly', $model->insertAdoptOnly, FALSE);
 
             // ---------------------------------------------------------------- Relations debug
             if ($relations = $model->relations()) {
@@ -1412,7 +1413,7 @@ PHP
 
                     $getterBody = "\$parsed = \$this->parsePgArray(\$this->attributes['{$name}'] ?? NULL);";
                     $getterBody .= ($field->pgArrayNumeric
-                        ? "\nreturn array_map(fn(\$v) => \$v === NULL ? NULL : (int) \$v, \$parsed);"
+                        ? "\nreturn array_map(fn(\$v) => \$v === NULL ? NULL : (float) \$v, \$parsed);"
                         : "\nreturn \$parsed;"
                     );
                     $setterBody = "\$this->attributes['{$name}'] = \$this->formatPgArray(\$value, {$numericArg});";

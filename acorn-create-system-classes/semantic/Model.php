@@ -103,6 +103,7 @@ class Model {
     public $uses      = array();
     public $traits    = array();
     public $behaviors = array();
+    public $insertAdoptOnly;
 
     public function __construct(Plugin|Module &$plugin, Table &$table)
     {
@@ -129,6 +130,7 @@ class Model {
         if ($this->alesFunctions) foreach ($this->alesFunctions as $name => &$definition) $definition['stage'] = 'ales';
 
         if (!isset($this->readOnly) && $table instanceof View) $this->readOnly = TRUE;
+        if (!isset($this->insertAdoptOnly)) $this->insertAdoptOnly = $table->insertAdoptOnly;
 
         // Turn labels-from tables into Table
         foreach ($this->labelsFrom as &$labelsFromTableName) {

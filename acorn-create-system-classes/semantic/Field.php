@@ -512,6 +512,9 @@ class Field {
                 $numericUdtNames = array('_int2', '_int4', '_int8', '_float4', '_float8', '_numeric', '_money');
                 $fieldDefinition['pgArray']        = true;
                 $fieldDefinition['pgArrayNumeric'] = in_array($column->udt_name, $numericUdtNames);
+                $fieldDefinition['fieldType']      = 'taglist';
+                $fieldDefinition['columnType']     = 'text';
+                $fieldDefinition['mode']           = 'array';
                 break;
             case 'double precision':
             case 'double':

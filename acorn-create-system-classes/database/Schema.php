@@ -17,7 +17,8 @@ class Schema {
     public $canFilterDefault;
     public $model; // All Models in this schema will inherit from this
     public $schemaEditable; // Allows the schema editor to use DDL
-
+    public $system;
+    
     // ----------------------------------------- Construction
     public static function fromRow(DB &$db, array $row)
     {
@@ -84,6 +85,11 @@ class Schema {
         else if ($alwaysArray && !is_array($value)) $value = array($value);
 
         return $value;
+    }
+
+    public function shouldProcess(): bool
+    {
+        return (!$this->system);
     }
 
     // ----------------------------------------- Display

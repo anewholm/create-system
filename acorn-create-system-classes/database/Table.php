@@ -57,7 +57,7 @@ class Table {
     public $pivot; 
     public $schemaEditable; // Allows the schema editor to use DDL
     public $schemaDomainTable; // Allows the schema editor to access as lookup
-
+    public $insertAdoptOnly;
 
     public $icon;
     public $tableType; // TODO: create a Derived class instead?
@@ -782,6 +782,15 @@ SQL
                 }
             }
         }
+
+        if (!isset($this->insertAdoptOnly) && $this->hasTrigger('tr_UPDATE_not_allowed')) {
+            if (!$this->contraints['unique'])
+                throw new Exception("No UniqueConstraints when trying to assemble insertAdoptOnly for $this->name");
+            if (count($this->contraints['unique']) > 1)
+                throw new Exception("More than 1 UniqueConstraint when trying to assemble insertAdoptOnly for $this->name");
+            $uC = end($this->contraints['unique']);
+            $this->insertAdoptOnly = $uC->columns;
+        }
     }
 
     public function loadActionFunctions()
@@ -936,8 +945,13 @@ SQL
     public function hasTrigger(string $function): bool
     {
         $has = FALSE;
-        foreach ($this->triggers as $trigger) {
-            if ($trigger->function == $function) {
+        foreach ($this->triggers as $fqName => $trigger) {
+            $nameParts = explode('.', $fqName);
+            $localName = end($nameParts);
+            if ($trigger->function == $function 
+                || $fqName    == $function
+                || $localName == $function
+            ) {
                 $has = TRUE;
                 break;
             }

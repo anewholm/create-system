@@ -199,7 +199,9 @@ class Relation {
     public function is1to1(): bool
     {
         // This will include HasManyDeep(1to1), Leaf and 1to1
-        return ($this instanceof Relation1to1 || $this->type() == '1to1');
+        return ($this instanceof Relation1to1 
+            || in_array($this->type(), ['1to1', 'Leaf'])
+        );
     }
 
     public function isFromLeaf(): bool

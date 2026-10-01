@@ -146,6 +146,7 @@ class DB {
             from pg_namespace sch
 			inner join pg_database db on db.datdba = sch.nspowner
 			where db.datname = :dbname
+            and substring(obj_description(sch.oid, 'pg_namespace'), 'system: true') is null
         ");
         $dbName = $this->dbDatabase();
         $statement->bindParam(':dbname', $dbName);
@@ -373,10 +374,12 @@ class DB {
                 tableowner as owner
             from information_schema.tables tbs
             inner join pg_tables pgtbs on tbs.table_schema = pgtbs.schemaname and tbs.table_name = pgtbs.tablename
+            inner join pg_namespace sc on tbs.table_schema = sc.nspname
             where table_catalog = current_database()
                 and table_schema not like('pg_%') and not table_schema = 'information_schema'
                 and table_schema like(:schemaMatch)
                 and table_name   like(:tableMatch)
+                and substring(obj_description(sc.oid, 'pg_namespace'), 'system: true') is null
             order by 
                 coalesce(substring(obj_description(concat(table_schema, '.', table_name)::regclass, 'pg_class'), 'order: ([0-9-]+)')::int, 10000) asc,
                 length(table_name) desc"
@@ -608,11 +611,13 @@ class DB {
                     join pg_class     table_from_class  on table_from_class.oid    = constr.conrelid
                     join pg_namespace table_from_schema on table_from_schema.oid   = table_from_class.relnamespace
                     join pg_attribute table_from_att    on table_from_att.attrelid = constr.conrelid
+                    join pg_namespace sch_from          on table_from_schema.nspname = sch_from.nspname
 
                     -- To (f)
                     join pg_class     table_to_class  on table_to_class.oid    = constr.confrelid
                     join pg_namespace table_to_schema on table_to_schema.oid   = table_to_class.relnamespace
                     join pg_attribute table_to_att    on table_to_att.attrelid = constr.confrelid
+                    join pg_namespace sch_to          on table_to_schema.nspname = sch_to.nspname
 
                     left outer join pg_description descr on descr.objoid = constr.oid
                 where constr.contype = 'f'
@@ -621,6 +626,8 @@ class DB {
                     and table_{$toFrom}_schema.nspname = :schema
                     and table_{$toFrom}_class.relname  = :table
                     and table_{$toFrom}_att.attname    = :column
+                    and substring(obj_description(sch_from.oid, 'pg_namespace'), 'system: true') is null
+                    and substring(obj_description(sch_to.oid,   'pg_namespace'), 'system: true') is null
                 order by coalesce(substring(descr.description, 'order: ([0-9]+)')::int, 10000) asc"
         );
         $statement->bindParam(':schema', $column->table->schema);
@@ -808,8 +815,12 @@ SQL;
     public function reassignOwner(string $from, string $to): void
     {
         $sql = "REASSIGN OWNED BY $from TO $to;";
-        $statement = $this->connection->prepare($sql);
-        $statement->execute();
+        print("[$sql] would re-assign across ALL databases!\n");
+        $yn  = readline("Are you sure (y|n)? [n] ");
+        if ($yn == 'y') {
+            $statement = $this->connection->prepare($sql);
+            $statement->execute();        
+        }
     }
 
     public function setCommentValue(string $table, string $column, string $dotPath, mixed $value) {
