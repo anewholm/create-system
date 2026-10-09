@@ -1844,6 +1844,7 @@ PHP
                     'keyFrom'   => $field->keyFrom,
                     'recordUrl' => $field->recordUrl,
                     'listEditable' => $field->listEditable,
+                    'popupHidden'  => $field->popupHidden,
                 
                     'options'      => $field->fieldOptions,      // Function call
                     'optionsModel' => $field->fieldOptionsModel, // Model name

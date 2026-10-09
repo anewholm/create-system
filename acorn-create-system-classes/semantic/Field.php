@@ -39,6 +39,7 @@ class Field {
     public $prefix; // Supported by _some_ partials
     public $suffix; // Supported by _some_ partials
     public $schemaEditable; // Allows the schema editor to use DDL
+    public $popupHidden;
 
     // fieldName & columnName
     // fields.yaml <name>: and columns.yaml <name>: can be different

@@ -141,6 +141,7 @@ class Column {
     public $fieldOptions;  // array
     public $optionsWith; // Custom AA extension
     public $optionsWhere; // Custom AA extension
+    public $popupHidden;
     public $searchable;
     public $actions; // field-actions
     public $cssClassesColumn;
